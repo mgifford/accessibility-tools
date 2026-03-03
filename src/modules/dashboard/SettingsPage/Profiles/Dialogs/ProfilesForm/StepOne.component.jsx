@@ -87,17 +87,11 @@ const StepTwo = () => {
             Profile picture
           </Typography>
         </label>
-        <ImageUploader
-          key={profileUploaderKey}
-          id='profile'
-          onDrop={img => handleImageUpload(img, 'profile')}
-          image={image}
-          maxDimensions={[400, 400]}
-        />
+        <ImageUploader key={profileUploaderKey} id='profile' onDrop={img => handleImageUpload(img, 'profile')} image={image} maxDimensions={[400, 400]} />
       </div>
       <div className={styles.formField}>
         <TextField
-          label='First name'
+          label={<Typography>First name</Typography>}
           placeholder='E.g. Anna'
           required
           value={firstName}
@@ -112,7 +106,7 @@ const StepTwo = () => {
       </div>
       <div className={styles.formField}>
         <TextField
-          label='Last name'
+          label={<Typography>Last name</Typography>}
           placeholder='E.g. Smith'
           required
           value={lastName}
@@ -127,7 +121,7 @@ const StepTwo = () => {
       </div>
       <div className={styles.formField}>
         <TextField
-          label='Title'
+          label={<Typography>Title</Typography>}
           placeholder='E.g. Chief technology officer'
           required
           value={title}

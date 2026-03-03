@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import styles from './RemediationForm.module.scss';
 
 const StepTwo = () => {
-  const { category, criteria, tests, selectors, setCategory, setCriteria, setTests, setSelectors, touched, errors, handleBlur } = useRemediationFormStore();
+  const { category, criteria, tests, selectors, setCategory, setCriteria, setTests, setSelectors, touched, errors, setErrors, handleBlur } = useRemediationFormStore();
   const { categories, criteria: criteriaOptions } = useSystemStore();
 
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -18,20 +18,18 @@ const StepTwo = () => {
   const fetchTestCaseOptions = useMemo(
     () =>
       debounce(async (value) => {
-        if (!value) {
-          setTestOptions([]);
-          return;
+        if (value) {
+          value = value
+            .split('\n')
+            .map(i => i.trim())
+            .filter(Boolean);
         }
-        value = value
-          .split('\n')
-          .map(i => i.trim())
-          .filter(Boolean);
         if (!value.length) {
           setTestOptions([]);
-          return;
         }
         const testCases = await window.api.testCase.find({
-          selectors: value,
+          selectors: value.length > 0 ? value : undefined,
+          system_standard_criteria: criteria,
           limit: false
         });
         const tcIds = testCases.result.map(i => i.id);
@@ -40,7 +38,7 @@ const StepTwo = () => {
         const options = testCases.result.map(item => ({ value: item.id, label: `${item.id}: ${item.name}` }));
         setTestOptions(options);
       }, 400),
-    []
+    [criteria]
   );
 
   useEffect(() => {
@@ -109,7 +107,7 @@ const StepTwo = () => {
           label={(
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '20px', top: '-20px' }}>
               <Typography variant='body2'>Test cases</Typography>
-              <Tooltip title='Test cases to be included in the remediation, filtered by the provided selectors.'>
+              <Tooltip title='Test cases to be included in the remediation, filtered by the provided criteria and selectors.'>
                 <span className={styles.infoIcon}>
                   <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
                 </span>
@@ -122,6 +120,7 @@ const StepTwo = () => {
           options={testOptions}
           index={0}
           multiple
+          disabled={testOptions.length === 0}
         />
       </div>
     </div>

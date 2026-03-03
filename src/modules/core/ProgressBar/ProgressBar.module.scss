@@ -1,9 +1,9 @@
-@import 'constants/theme';
+@import "constants/theme";
 
 .progressBar {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
+  margin: 16px 0 20px 0;
   background-color: $palette-background-grey;
   padding: 12px;
   border-radius: 16px;
@@ -18,7 +18,7 @@
     border-radius: 4px;
     transition: background-color 0.3s;
 
-    @media(prefers-color-scheme: dark) {
+    @media (prefers-color-scheme: dark) {
       background-color: $palette-background-mist;
     }
 
@@ -27,7 +27,7 @@
       background-color: $palette-primary-main;
     }
   }
-  @media(prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: dark) {
     background-color: $palette-dark-background-2;
   }
 }

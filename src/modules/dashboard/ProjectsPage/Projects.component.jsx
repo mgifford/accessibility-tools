@@ -1,4 +1,4 @@
-import { circlePlus, filePlus, globePointer, link, menu, sliders, trash, zap } from '@/assets/icons';
+import { circlePlus, filePlus, globePointer, link, moreVertical, plus, sliders, trash, zap } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
 import Menu from '@/modules/core/Menu';
 import ProjectForm from '@/modules/dashboard/ProjectsPage/Dialogs/ProjectForm';
@@ -182,23 +182,6 @@ export default function Projects() {
     );
   }
 
-  if (projects.length === 0) {
-    return (
-      <Box className={styles.noProjects}>
-        <Typography variant='body2' className={styles.noProjectText}>
-          Please start by creating a project
-        </Typography>
-        <div className={styles.addProject}>
-          <Button onClick={openProjectFormDialog}>
-            <Typography>New project</Typography>
-            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={circlePlus} />
-          </Button>
-        </div>
-        <ProjectForm open={isProjectFormDialogOpen} onClose={closeProjectFormDialog} onProjectAdded={handleProjectAdd} projectId={selectedProject?.id} />
-      </Box>
-    );
-  }
-
   return (
     <div className={styles.projects}>
       <div className={styles.pageHeading}>
@@ -214,6 +197,34 @@ export default function Projects() {
       </div>
 
       <div className={styles.projectsList}>
+        <div
+          role='button'
+          tabIndex={0}
+          className={classNames(styles.project, styles.newProject)}
+          onClick={openProjectFormDialog}
+          onKeyDown={(e) => {
+            if (e.currentTarget === document.activeElement && e.key === 'Enter') {
+              e.preventDefault();
+              openProjectFormDialog();
+            }
+          }}
+          onKeyUp={(e) => {
+            if (e.currentTarget === document.activeElement && e.key === ' ') {
+              e.preventDefault();
+              openProjectFormDialog();
+            }
+          }}
+          aria-label='Create new project'
+        >
+          <div className={styles.projectImg}></div>
+          <div className={styles.projectInfo}></div>
+          <div className={styles.overlay}>
+            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} showShadow />
+            <Typography variant='body1' className={styles.title}>
+              Create new project
+            </Typography>
+          </div>
+        </div>
         {projects.map((item, i) => (
           <div
             role='button'
@@ -240,7 +251,9 @@ export default function Projects() {
             </div>
             <div className={styles.projectInfo}>
               <div className={styles.projectName}>
-                <Typography variant='body1'>{item.name}</Typography>
+                <Typography variant='h2' className={styles.title}>
+                  {item.name}
+                </Typography>
                 <span className={styles.projectIcon}>
                   {item.connected
                     ? (
@@ -262,8 +275,9 @@ export default function Projects() {
                     e.stopPropagation();
                     onMenuClick(e, item);
                   }}
+                  className={styles.menuButton}
                 >
-                  <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={menu} />
+                  <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={moreVertical} />
                 </IconButton>
                 <Menu anchorEl={menuState.anchorEl} onClose={onMenuClose} items={menuItems} />
               </div>

@@ -1,15 +1,14 @@
+import { circlePlus, edit3 } from '@/assets/icons';
 import { formatDomain } from '@/electron/lib/utils';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon/Icon.component';
+import { useSnackbarStore } from '@/stores';
 import { useProjectFormStore } from '@/stores/useProjectFormStore';
+import classNames from 'classnames';
 import { useEffect } from 'react';
 import styles from './ProjectForm.module.scss';
 import StepOne from './StepOne.component';
 import StepTwo from './StepTwo.component';
-import { useSnackbarStore } from '@/stores';
-import ProgressBar from '@/modules/core/ProgressBar';
-import { circlePlus, edit3 } from '@/assets/icons';
-import classNames from 'classnames';
 
 export default function ProjectForm({ open, onClose, onProjectAdded, projectId }) {
   const {
@@ -167,6 +166,7 @@ export default function ProjectForm({ open, onClose, onProjectAdded, projectId }
     ? [
         {
           label: 'Environments',
+          helpText: 'Choose the name and type of the environment',
           component: (
             <StepTwo
               projectName={projectName}
@@ -184,10 +184,12 @@ export default function ProjectForm({ open, onClose, onProjectAdded, projectId }
     : [
         {
           label: 'Project Details',
+          helpText: 'Select the type of the project',
           component: <StepOne connected={connected} onSelect={setConnected} />
         },
         {
           label: 'Environments',
+          helpText: 'Choose the name and type of the environment',
           component: (
             <StepTwo
               projectName={projectName}
@@ -206,6 +208,8 @@ export default function ProjectForm({ open, onClose, onProjectAdded, projectId }
   return (
     <>
       <Dialog
+        steps={steps}
+        currentStep={step - 1}
         open={open}
         onClose={onClose}
         title={projectId ? 'Edit project' : 'Create new project'}
@@ -216,7 +220,7 @@ export default function ProjectForm({ open, onClose, onProjectAdded, projectId }
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? (projectId ? 'Save' : 'Create') : 'Continue',
+          nextLabel: step === steps.length ? (projectId ? 'Save' : 'Create') : 'Next',
           backLabel: step === 1 ? 'Cancel' : 'Back',
           isSubmitting,
           onBack: handleBack
@@ -240,11 +244,6 @@ export default function ProjectForm({ open, onClose, onProjectAdded, projectId }
           }
         }}
       >
-        {steps.length > 1 && (
-          <ProgressBar totalSteps={steps.length} currentStep={step} />
-        )}
-
-        {steps[step - 1] && steps[step - 1].component}
       </Dialog>
     </>
   );

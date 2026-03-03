@@ -3,6 +3,8 @@
 .coreDialog {
   .dialog {
     background-color: $palette-content-background;
+    justify-content: center !important;
+    min-height: 40% !important;
     @media (prefers-color-scheme: dark) {
       background-color: $palette-dark-background-main-nav;
       --Paper-overlay: none !important;
@@ -14,12 +16,37 @@
     overflow-y: auto;
     height: 100%;
 
+    .dialogHeader {
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      padding: 0;
+      border-bottom: none;
+
+      h2 {
+        font-size: 18px;
+        font-weight: 500;
+        margin-top: 20px;
+        color: $palette-primary-text;
+
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-text;
+        }
+      }
+
+      p {
+        font-size: 16px;
+        margin-top: 4px;
+        font-weight: 400;
+      }
+    }
+
     & > * {
       margin: 0 auto;
     }
 
     form:not(.delete) {
-      padding: 30px 50px;
+      padding: 70px 50px 50px;
       overflow: auto;
       display: flex;
       flex-direction: column;

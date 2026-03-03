@@ -1,14 +1,14 @@
+import { info, minus, plus, trash } from '@/assets/icons';
 import { isDomainValid } from '@/electron/lib/utils';
+import Icon from '@/modules/core/Icon';
 import Select from '@/modules/core/Select';
+import { useSystemStore } from '@/stores';
 import { useProjectFormStore } from '@/stores/useProjectFormStore';
-import { info, plus, minusCircle, minus } from '@/assets/icons';
-import { Box, Button, Divider, FormControl, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
+import { Box, Button, Divider, FormControl, IconButton, TextField, Typography } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
-import styles from './ProjectForm.module.scss';
 import classNames from 'classnames';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSystemStore } from '@/stores';
-import Icon from '@/modules/core/Icon';
+import styles from './ProjectForm.module.scss';
 
 const StepTwo = () => {
   const {
@@ -55,11 +55,12 @@ const StepTwo = () => {
 
   const fetchEnvironments = useCallback(async () => {
     const data = await window.api.environment.find({ project_id: projectId });
-    const mappedData = data?.result?.map(env => ({
-      id: env.id,
-      environment: env.name,
-      domain: env.url
-    })) || [];
+    const mappedData
+      = data?.result?.map(env => ({
+        id: env.id,
+        environment: env.name,
+        domain: env.url
+      })) || [];
     setEnvDomains(mappedData);
     setInitialEnvDomains(mappedData);
   }, [projectId, setEnvDomains]);
@@ -68,11 +69,13 @@ const StepTwo = () => {
     try {
       const response = await window.api.technology.find({ limit: false });
       if (response?.result) {
-        setAvailableTechnologies(response.result.map(tech => ({
-          value: tech.id,
-          label: tech.name,
-          isSystem: tech.is_system
-        })));
+        setAvailableTechnologies(
+          response.result.map(tech => ({
+            value: tech.id,
+            label: tech.name,
+            isSystem: tech.is_system
+          }))
+        );
       }
     } catch (error) {
       console.error('Error fetching available technologies:', error);
@@ -89,14 +92,16 @@ const StepTwo = () => {
   }, [projectId]);
 
   const environmentOptions = useMemo(() => {
-    return environments.map((env) => {
-      const value = env.name;
-      return {
-        value,
-        label: value,
-        disabled: envDomains.some(domain => domain.environment === value)
-      };
-    });
+    return environments
+      .filter(env => env.is_selected)
+      .map((env) => {
+        const value = env.name;
+        return {
+          value,
+          label: value,
+          disabled: envDomains.some(domain => domain.environment === value)
+        };
+      });
   }, [environments, envDomains]);
 
   const handleDomainBlur = (domain, index) => {
@@ -143,9 +148,7 @@ const StepTwo = () => {
 
     const newTechIds = newTechs.map(tech => tech.value);
 
-    const removedTechs = availableTechnologies.filter(
-      tech => !newOptions.some(option => option.value === tech.value)
-    );
+    const removedTechs = availableTechnologies.filter(tech => !newOptions.some(option => option.value === tech.value));
 
     if (removedTechs.length > 0) {
       try {
@@ -157,18 +160,13 @@ const StepTwo = () => {
       }
     }
 
-    const updatedTechnologyIds = [...previousTechIds, ...newTechIds].filter(
-      id => !removedTechs.some(tech => tech.value === id)
-    );
+    const updatedTechnologyIds = [...previousTechIds, ...newTechIds].filter(id => !removedTechs.some(tech => tech.value === id));
 
     setTechnologies(updatedTechnologyIds);
     setAvailableTechnologies(newOptions);
   };
 
-  const allEnvironmentsAssigned = useMemo(() =>
-    environments.every(env =>
-      envDomains.some(domain => domain.environment === env.name)
-    ), [environments, envDomains]);
+  const allEnvironmentsAssigned = useMemo(() => environments.every(env => envDomains.some(domain => domain.environment === env.name)), [environments, envDomains]);
 
   const addEnvGroup = async () => {
     await addEnvDomain();
@@ -208,7 +206,7 @@ const StepTwo = () => {
           />
         </div>
 
-        <Typography variant='body1' gutterBottom pt={2}>
+        <Typography variant='body1' fontWeight={700} gutterBottom pt={2} mb={0}>
           Environments
         </Typography>
 
@@ -219,16 +217,26 @@ const StepTwo = () => {
 
               return (
                 <Box key={index} className={`${styles.environmentRow} environmentRow`}>
-                  <Select
-                    index={index}
-                    value={pair.environment}
-                    onChange={value => handleChange('environment', value, index)}
-                    onBlur={() => handleBlur('environment', pair.environment, index)}
-                    touched={touched.envDomains?.[index]?.environment}
-                    errors={errors.envDomains?.[index]?.environment}
-                    label='Environment name'
-                    options={environmentOptions}
-                  />
+                  <Box position='relative'>
+                    <Select
+                      index={index}
+                      value={pair.environment}
+                      onChange={value => handleChange('environment', value, index)}
+                      onBlur={() => handleBlur('environment', pair.environment, index)}
+                      touched={touched.envDomains?.[index]?.environment}
+                      errors={errors.envDomains?.[index]?.environment}
+                      label='Environment name'
+                      options={environmentOptions}
+                      action={
+                        !isExistingDomain
+                        && index !== 0 && (
+                          <IconButton className={styles.removeIconContainer} aria-label='Remove environment' onClick={() => removeEnvGroup(index)} edge='end'>
+                            <Icon className={classNames('clym-contrast-exclude', styles.icon, styles.removeIcon)} icon={trash} />
+                          </IconButton>
+                        )
+                      }
+                    />
+                  </Box>
                   <TextField
                     label='Domain'
                     required
@@ -240,15 +248,6 @@ const StepTwo = () => {
                     helperText={errors.envDomains?.[index]?.domain}
                     fullWidth
                     className={classNames(styles.textField, errors.envDomains?.[index]?.domain ? styles.textFieldError : '')}
-                    InputProps={{
-                      endAdornment: !isExistingDomain && index !== 0 && (
-                        <InputAdornment position='end'>
-                          <IconButton aria-label='Remove environment' onClick={() => removeEnvGroup(index)} edge='end'>
-                            <Icon className={classNames('clym-contrast-exclude', styles.icon, styles.removeIcon)} icon={minusCircle} />
-                          </IconButton>
-                        </InputAdornment>
-                      )
-                    }}
                   />
                 </Box>
               );
@@ -266,7 +265,13 @@ const StepTwo = () => {
         {projectId && (
           <Button variant='text' className={styles.addPurposeButton} onClick={togglePurposeAndFunctionality}>
             <Typography variant='body2'>Website purpose and functionality</Typography>
-            {purposeAndFunctionalityOpen ? <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={minus} /> : <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} />}
+            {purposeAndFunctionalityOpen
+              ? (
+                <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={minus} />
+                )
+              : (
+                <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} />
+                )}
           </Button>
         )}
       </div>
@@ -287,7 +292,7 @@ const StepTwo = () => {
           </FormControl>
           <Divider></Divider>
           <Typography variant='body1' sx={{ mt: 2, fontWeight: 700 }}>
-            Exploration notes
+            Notes
           </Typography>
           <div className={styles.formField}>
             <TextField

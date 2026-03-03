@@ -8,6 +8,13 @@
   }
 }
 
+.toolTip {
+  color: $palette-dark-primary-text-2;
+  a {
+    color:$palette-background-mist;
+  }
+}
+
 .infoIcon {
   height: 16px;
   cursor: pointer;
@@ -15,8 +22,9 @@
   svg {
     color: $palette-primary-main;
     fill: transparent;
-    position:relative;
+    position: relative;
     font-size: 16px;
+    margin-bottom: 1px;
 
     @media (prefers-color-scheme: dark) {
       color: $palette-dark-tertiary-text;
@@ -26,7 +34,8 @@
 
 .stepOne,
 .stepTwo,
-.stepThree {
+.stepThree,
+.stepFour {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -107,7 +116,7 @@
       .deleteButton {
         position: absolute;
         right: -44px;
-        top:0;
+        top: 0;
         bottom: 0;
         width: 44px;
         svg {
@@ -115,7 +124,7 @@
           fill: none;
           font-size: 16px;
 
-          @media(prefers-color-scheme: dark) {
+          @media (prefers-color-scheme: dark) {
             color: $palette-dark-primary-text-2;
           }
         }
@@ -145,6 +154,10 @@
 
     :global(.MuiInputLabel-root) {
       top: -20px;
+      p {
+        font-weight: 500;
+        display: inline-block;
+      }
     }
 
     > div {
@@ -210,9 +223,8 @@
 
   &[disabled] {
     p {
-      color:$palette-primary-disabled;
+      color: $palette-primary-disabled;
     }
-
   }
 }
 
@@ -232,21 +244,6 @@
     text-align: center;
     padding: 0;
     border-bottom: none;
-
-    p {
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 20px;
-      color: $palette-primary-text;
-
-      @media (prefers-color-scheme: dark) {
-        color: $palette-dark-primary-text;
-      }
-    }
-
-    .icon {
-      //border: 2px solid $palette-primary-icon;
-    }
   }
 
   .dialogContent {

@@ -27,7 +27,7 @@ const StepOne = () => {
     <div className={styles.stepOne}>
       <div className={styles.formField}>
         <TextField
-          label='Test name'
+          label={<Typography>Test name</Typography>}
           required
           value={testName ?? ''}
           onChange={e => setTestName(e.target.value)}

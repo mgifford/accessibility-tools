@@ -1,7 +1,9 @@
+import { info } from '@/assets/icons';
+import Icon from '@/modules/core/Icon';
 import Select from '@/modules/core/Select';
 import { useSystemStore } from '@/stores';
 import { useAuditFormStore } from '@/stores/useAuditFormStore';
-import { FormControl, TextField, Typography } from '@mui/material';
+import { TextField, Typography } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
@@ -9,8 +11,6 @@ import { format } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import Icon from '@/modules/core/Icon';
-import { info } from '@/assets/icons';
 import styles from './AuditForm.module.scss';
 
 const StepOne = ({}) => {
@@ -55,18 +55,17 @@ const StepOne = ({}) => {
     errors
   } = useAuditFormStore();
 
-  const {
-    auditTypes
-  } = useSystemStore();
+  const { auditTypes } = useSystemStore();
 
   const datePicketInputRef = useRef(null);
 
   const [auditVersionOptions, setAuditVersionOptions] = useState([]);
 
-  const reportTypeOptions = auditTypes?.map(type => ({
-    value: type.id,
-    label: type.name
-  })) ?? [];
+  const reportTypeOptions
+    = auditTypes?.map(type => ({
+      value: type.id,
+      label: type.name
+    })) ?? [];
 
   useEffect(() => {
     const selectedOption = auditTypes.find(opt => opt.id === reportType);
@@ -174,7 +173,7 @@ const StepOne = ({}) => {
           label={(
             <div>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '20px', top: '-20px' }} className={errors.reportIdentifier ? styles.error : ''}>
-                Report Identifier <span>*</span>
+                Report Identifier *
                 <Tooltip title='Date, internal version or other'>
                   <span className={styles.infoIcon}>
                     <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
@@ -195,8 +194,12 @@ const StepOne = ({}) => {
       </div>
       <div className={styles.datePickerWrapper}>
         <div className={classNames(styles.formField, { [styles.error]: Boolean(errors.reportDate) })}>
-          <Typography variant='body2' className={styles.formLabel}>Report Date <span>*</span></Typography>
-          <p id='datepicker-instructions' style={visuallyHidden}>Use arrow keys to select a date.</p>
+          <Typography variant='body2' className={styles.formLabel}>
+            Report Date *
+          </Typography>
+          <p id='datepicker-instructions' style={visuallyHidden}>
+            Use arrow keys to select a date.
+          </p>
           <DatePicker
             selected={reportDate}
             onChange={handleDatePickerChange}
@@ -206,16 +209,9 @@ const StepOne = ({}) => {
             placeholderText='Eg. Thu Jan 02'
             minDate={new Date()}
             onCalendarOpen={handleCalendarOpen}
-            customInput={(
-              <TextField
-                value={reportDate ? format(reportDate, 'EEE MMM dd yyyy') : ''}
-                required
-                onChange={() => {}}
-                onClick={() => {}}
-                fullWidth
-                inputRef={datePicketInputRef}
-              />
-            )}
+            customInput={
+              <TextField value={reportDate ? format(reportDate, 'EEE MMM dd yyyy') : ''} required onChange={() => {}} onClick={() => {}} fullWidth inputRef={datePicketInputRef} />
+            }
           />
           {touched.reportDate && errors.reportDate && (
             <Typography color='error' variant='caption' className={styles.textFieldError}>

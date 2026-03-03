@@ -1,8 +1,8 @@
+import { circlePlus, download, edit, eye, moreVertical, plus, sliders, trash, xSquare } from '@/assets/icons';
+import Icon from '@/modules/core/Icon';
 import Menu from '@/modules/core/Menu';
 import AuditForm from '@/modules/dashboard/AuditsPage/Dialogs/AuditForm';
 import { useAuditStore, useProjectStore, useSystemStore, useUiStore } from '@/stores';
-import { circlePlus, download, edit, menu, sliders, trash, xSquare, eye } from '@/assets/icons';
-import Icon from '@/modules/core/Icon';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import styles from './Audits.module.scss';
 import CloseAudit from './Dialogs/CloseAudit';
+import CreateProject from './Dialogs/CreateProject/CreateProject.component';
 import DeleteAudit from './Dialogs/DeleteAudit';
 import DownloadReport from './Dialogs/DownloadReport';
 
@@ -28,6 +29,7 @@ export default function Audits() {
   const [isCloseAuditDialogOpen, setCloseAuditDialogOpen] = useState(false);
   const [isDeleteAuditDialogOpen, setDeleteAuditDialogOpen] = useState(false);
   const [isDownloadReportDialogOpen, setDownloadReportDialogOpen] = useState(false);
+  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
   const [audits, setAudits] = useState([]);
   const [projects, setProjects] = useState([]);
   const [selectedAudit, setSelectedAudit] = useState(null);
@@ -103,6 +105,10 @@ export default function Audits() {
   }
 
   const openAuditFormDialog = () => {
+    if (projects.length === 0) {
+      setIsCreateProjectDialogOpen(true);
+      return;
+    }
     setIsAuditFormDialogOpen(true);
   };
 
@@ -111,10 +117,6 @@ export default function Audits() {
     setTimeout(() => {
       setSelectedAudit(null);
     }, 100);
-  };
-
-  const handleAddProject = () => {
-    router.push('/?openCreate=true');
   };
 
   const openCloseAudit = (item) => {
@@ -145,6 +147,10 @@ export default function Audits() {
   const closeDownloadReport = () => {
     setDownloadReportDialogOpen(false);
     setSelectedAudit(null);
+  };
+
+  const closeCreateProject = () => {
+    setIsCreateProjectDialogOpen(false);
   };
 
   const handleAuditAdd = async (audit) => {
@@ -261,39 +267,6 @@ export default function Audits() {
     );
   }
 
-  if (projects.length === 0) {
-    return (
-      <Box className={styles.splashScreen}>
-        <Typography variant='body2' className={styles.splashScreenText}>
-          You need a project before creating audits
-        </Typography>
-        <div className={styles.addAudit}>
-          <Button onClick={handleAddProject}>
-            <Typography>New project</Typography>
-            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={circlePlus} />
-          </Button>
-        </div>
-      </Box>
-    );
-  }
-
-  if (audits.length === 0) {
-    return (
-      <Box className={styles.splashScreen}>
-        <Typography variant='body2' className={styles.splashScreenText}>
-          No audits yet. Create one to get started
-        </Typography>
-        <div className={styles.addAudit}>
-          <Button onClick={openAuditFormDialog}>
-            <Typography>New audit</Typography>
-            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={circlePlus} />
-          </Button>
-        </div>
-        <AuditForm open={isAuditFormDialogOpen} onClose={closeAuditFormDialog} onAuditAdded={handleAuditAdd} auditId={selectedAudit?.id} triggerEl={selectedAudit?.id ? menuState.anchorEl : null} />
-      </Box>
-    );
-  }
-
   return (
     <div className={styles.audits}>
       <div className={styles.pageHeading}>
@@ -307,16 +280,37 @@ export default function Audits() {
         </div>
       </div>
       <div className={styles.auditsList}>
+        <div
+          role='button'
+          tabIndex={0}
+          className={classNames(styles.audit, styles.newAudit)}
+          onClick={openAuditFormDialog}
+          onKeyDown={(e) => {
+            if (e.currentTarget === document.activeElement && e.key === 'Enter') {
+              e.preventDefault();
+              openAuditFormDialog();
+            }
+          }}
+          onKeyUp={(e) => {
+            if (e.currentTarget === document.activeElement && e.key === ' ') {
+              e.preventDefault();
+              openAuditFormDialog();
+            }
+          }}
+          aria-label='Create new audit'
+        >
+          <div className={styles.auditImg}></div>
+          <div className={styles.auditInfo}></div>
+          <div className={styles.overlay}>
+            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} showShadow />
+            <Typography variant='body1' className={styles.title}>
+              Create new audit
+            </Typography>
+          </div>
+        </div>
         {audits.map((item, i) => {
           return (
             <Box key={i}>
-              <div className={styles.progressContainer}>
-                <div className={styles.auditProgressBar}></div>
-                <div className={styles.collaboratorsConatiner}>
-                  <div className={styles.collaborators}></div>
-                  <div className={styles.addCollaboratorIcon}></div>
-                </div>
-              </div>
               <div
                 role='button'
                 tabIndex={0}
@@ -351,7 +345,11 @@ export default function Audits() {
                       />
                     </svg>
                   </div>
-                  <div className={styles.auditName}>{item.identifier + ' - ' + item.project?.name}</div>
+                  <div className={styles.auditName}>
+                    <Typography variant='h2' className={styles.title}>
+                      {item.identifier + ' - ' + item.project?.name}
+                    </Typography>
+                  </div>
                   <div className={styles.auditMenu}>
                     <IconButton
                       size='small'
@@ -364,7 +362,7 @@ export default function Audits() {
                         onMenuClick(e, item);
                       }}
                     >
-                      <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={menu} />
+                      <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={moreVertical} />
                     </IconButton>
                     <Menu anchorEl={menuState.anchorEl} onClose={onMenuClose} items={getMenuItems()} />
                   </div>
@@ -374,10 +372,23 @@ export default function Audits() {
           );
         })}
       </div>
-      <AuditForm open={isAuditFormDialogOpen} onClose={closeAuditFormDialog} onAuditAdded={handleAuditAdd} auditId={selectedAudit?.id} triggerEl={selectedAudit?.id ? menuState.anchorEl : null} />
+      <AuditForm
+        open={isAuditFormDialogOpen}
+        onClose={closeAuditFormDialog}
+        onAuditAdded={handleAuditAdd}
+        auditId={selectedAudit?.id}
+        triggerEl={selectedAudit?.id ? menuState.anchorEl : null}
+      />
       <CloseAudit open={isCloseAuditDialogOpen} onClose={closeCloseAudit} audit={selectedAudit} onCloseSuccess={fetchAuditsAndProjects} triggerEl={menuState.anchorEl} />
       <DeleteAudit open={isDeleteAuditDialogOpen} onClose={closeDeleteAudit} audit={selectedAudit} onDeleteSuccess={fetchAuditsAndProjects} triggerEl={menuState.anchorEl} />
-      <DownloadReport open={isDownloadReportDialogOpen} onClose={closeDownloadReport} audit={selectedAudit} isPreview={selectedAudit?.status === 'IN_PROGRESS'} triggerEl={menuState.anchorEl} />
+      <DownloadReport
+        open={isDownloadReportDialogOpen}
+        onClose={closeDownloadReport}
+        audit={selectedAudit}
+        isPreview={selectedAudit?.status === 'IN_PROGRESS'}
+        triggerEl={menuState.anchorEl}
+      />
+      <CreateProject open={isCreateProjectDialogOpen} onClose={closeCreateProject} />
     </div>
   );
 }

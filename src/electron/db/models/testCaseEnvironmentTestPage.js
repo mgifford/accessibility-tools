@@ -18,6 +18,24 @@ const beforeCreate = async (models, testCaseEnvironmentTestPage, options) => {
   }
 };
 
+const beforeDestroy = async (models, obj, options) => {
+  const transaction = options.transaction;
+  const { id } = obj;
+  const testCaseEnvironmentTestPageTargets = await models.testCaseEnvironmentTestPageTarget.findAll({
+    where: { test_case_page_id: id },
+    transaction
+  });
+  const testCaseEnvironmentTestPageTargetIds = testCaseEnvironmentTestPageTargets.map(testCaseEnvironmentTestPageTarget => testCaseEnvironmentTestPageTarget.id);
+  await models.testPageTargetOccurrence.destroy({
+    where: { page_target_id: testCaseEnvironmentTestPageTargetIds },
+    transaction
+  });
+  await models.testCaseEnvironmentTestPageTarget.destroy({
+    where: { test_case_page_id: id },
+    transaction
+  });
+};
+
 export const TEST_CASE_PAGE_STATUS_VALUES = ['PASS', 'FAIL', 'ERROR', 'NOT_APPLICABLE', 'INCOMPLETE', 'IN_PROGRESS', 'MANUAL'];
 
 export default (sequelize, DataTypes) => {
@@ -65,6 +83,9 @@ export default (sequelize, DataTypes) => {
       promises.push(beforeCreate(sequelize.models, testCaseEnvironmentTestPage, options));
     }
     await Promise.all(promises);
+  });
+  TestCaseEnvironmentPage.addHook('beforeDestroy', async (testCaseEnvironmentTestPage, options) => {
+    await beforeDestroy(sequelize.models, testCaseEnvironmentTestPage, options);
   });
 
   TestCaseEnvironmentPage.associate = (models) => {

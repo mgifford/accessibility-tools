@@ -147,7 +147,6 @@ export const useProjectTestFormStore = create((set, get) => ({
       case 'structuredPage':
       case 'randomPage':
         if (!value.label) return 'Page selection is required';
-        // need dns check here too
         if (!value.id && value.label && !isDomainValid(value.label)) return 'Invalid domain URL';
         return '';
       default:
@@ -163,7 +162,7 @@ export const useProjectTestFormStore = create((set, get) => ({
         touched: { ...touched, [field]: true },
         errors: { ...errors, [field]: validateField(field, value) }
       });
-    } else if (step === 2 && arrayType === 'structuredPages') {
+    } else if (step === 3 && arrayType === 'structuredPages') {
       const updatedTouched = [...touched.structuredPages];
       const updatedErrors = [...errors.structuredPages];
 
@@ -174,7 +173,7 @@ export const useProjectTestFormStore = create((set, get) => ({
         touched: { ...touched, structuredPages: updatedTouched },
         errors: { ...errors, structuredPages: updatedErrors }
       });
-    } else if (step === 3 && arrayType === 'randomPages') {
+    } else if (step === 4 && arrayType === 'randomPages') {
       const updatedTouched = [...touched.randomPages];
       const updatedErrors = [...errors.randomPages];
 
@@ -205,14 +204,14 @@ export const useProjectTestFormStore = create((set, get) => ({
         environmentType: true,
         essentialFunctionality: true
       };
-    } else if (step === 2) {
+    } else if (step === 3) {
       errors = {
         structuredPages: structuredPages.map(page => validateField('structuredPage', page))
       };
       touched = {
         structuredPages: structuredPages.map(() => true)
       };
-    } else if (step === 3) {
+    } else if (step === 4) {
       errors = {
         randomPages: randomPages.map(page => validateField('randomPage', page))
       };

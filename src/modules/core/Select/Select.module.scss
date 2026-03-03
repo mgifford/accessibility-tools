@@ -5,6 +5,14 @@
     top: -20px;
     display: flex;
 
+    &.horizontal {
+      position: unset;
+      transform: none;
+      min-width: max-content;
+      max-width: unset;
+      height: 100%;
+    }
+
     :global(.MuiFormLabel-asterisk) {
       font-family: $regular-font;
     }
@@ -12,6 +20,7 @@
   :global(.MuiInputBase-root) {
     &.selectField {
       border-radius: 8px;
+      width: 100%;
       div,
       input,
       fieldset {

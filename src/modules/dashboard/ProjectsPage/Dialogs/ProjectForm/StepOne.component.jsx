@@ -1,9 +1,9 @@
-import { useProjectFormStore } from '@/stores/useProjectFormStore';
-import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import Icon from '@/modules/core/Icon/Icon.component';
+import { useProjectFormStore } from '@/stores/useProjectFormStore';
+import { Box, Chip, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Stack, Typography } from '@mui/material';
 import styles from './ProjectForm.module.scss';
 
-import { uploadCloud, file, check } from '@/assets/icons';
+import { check, file, uploadCloud } from '@/assets/icons';
 import classNames from 'classnames';
 
 const StepOne = () => {
@@ -13,7 +13,7 @@ const StepOne = () => {
     <div className={styles.formField}>
       <FormControl component='fieldset' className={styles.formFieldSet}>
         <FormLabel id='project-type-label'>
-          <Typography variant='body1' component='span'>
+          <Typography variant='h2' className={styles.stepHeading}>
             Select your project
           </Typography>
         </FormLabel>
@@ -25,15 +25,16 @@ const StepOne = () => {
                 color='primary'
                 className={styles.projectBoxRadioButton}
                 tabIndex={-1}
-                checkedIcon={
-                  <Icon className={classNames('clym-contrast-exclude', styles.icon, styles.projectBoxRadioIconChecked)} icon={check} />
-              }
+                checkedIcon={<Icon className={classNames('clym-contrast-exclude', styles.icon, styles.projectBoxRadioIconChecked)} icon={check} />}
               />
             )}
             label={(
               <Box className={`${styles.projectBox}`} onClick={() => setConnected(false)}>
                 <Icon icon={file} shadowSize={12} showShadow={true} />
-                <Typography>Local project</Typography>
+                <Stack flex={1}>
+                  <Typography className={styles.projectBoxLabelHeading}>Local project</Typography>
+                  <Typography className={styles.projectBoxLabelCaption}>Start a new local project.</Typography>
+                </Stack>
               </Box>
             )}
             labelPlacement='start'
@@ -48,15 +49,19 @@ const StepOne = () => {
                 color='primary'
                 disabled
                 className={styles.projectBoxRadioButton}
-                checkedIcon={
-                  <Icon className={classNames('clym-contrast-exclude', styles.icon, styles.projectBoxRadioIconChecked)} icon={check} />
-            }
+                checkedIcon={<Icon className={classNames('clym-contrast-exclude', styles.icon, styles.projectBoxRadioIconChecked)} icon={check} />}
               />
             )}
             label={(
               <Box className={`${styles.projectBox}`}>
                 <Icon icon={uploadCloud} shadowSize={12} showShadow={true} />
-                <Typography>Connected project</Typography>
+                <Stack flex={1}>
+                  <Stack flexDirection='row' gap={1} alignItems='center'>
+                    <Typography className={styles.projectBoxLabelHeading}>Connected project</Typography>
+                    <Chip className={styles.comingSoonChip} label={<Typography>Coming soon</Typography>} />
+                  </Stack>
+                  <Typography className={styles.projectBoxLabelCaption}>Collaborate with others on a new project.</Typography>
+                </Stack>
               </Box>
             )}
             labelPlacement='start'

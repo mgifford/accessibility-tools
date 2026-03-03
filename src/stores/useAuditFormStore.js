@@ -125,7 +125,14 @@ export const useAuditFormStore = create((set, get) => ({
   setChapters: newChapters => set({ chapters: newChapters }),
   setProject: newProject => set({ project: newProject }),
   setEnvironmentType: newEnvironmentType => set({ environmentType: newEnvironmentType }),
-  setTest: newTest => set({ test: newTest }),
+  setTest: newTest =>
+    set(state => ({
+      test: newTest,
+      errors: {
+        ...state.errors,
+        test: newTest ? false : state.errors.test
+      }
+    })),
   setProduct: updates =>
     set(state => ({
       product: { ...state.product, ...updates }
@@ -243,7 +250,7 @@ export const useAuditFormStore = create((set, get) => ({
   },
 
   validateForm: () => {
-    const { step, reportIdentifier, reportDate, product, vendor, evaluator, evaluation, touched } = get();
+    const { step, reportIdentifier, test, reportDate, product, vendor, evaluator, evaluation, touched } = get();
     let errors = {};
     let updatedTouched = { ...touched };
 
@@ -256,6 +263,11 @@ export const useAuditFormStore = create((set, get) => ({
       if (!reportDate) {
         errors.reportDate = 'Report date is required';
         updatedTouched.reportDate = true;
+      }
+    } else if (step === 3) {
+      if (!test) {
+        errors.test = 'You must create a test before continuing.';
+        updatedTouched.test = true;
       }
     } else {
       let productErrors = {};

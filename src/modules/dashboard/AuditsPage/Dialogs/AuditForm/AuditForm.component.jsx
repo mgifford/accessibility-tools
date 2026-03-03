@@ -1,6 +1,5 @@
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon';
-import ProgressBar from '@/modules/core/ProgressBar';
 import { useSnackbarStore } from '@/stores';
 import { useAuditFormStore } from '@/stores/useAuditFormStore';
 import classNames from 'classnames';
@@ -54,9 +53,7 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
     setIsSubmitting
   } = useAuditFormStore();
 
-  const {
-    openSnackbar
-  } = useSnackbarStore();
+  const { openSnackbar } = useSnackbarStore();
 
   const triggerRef = useRef(triggerEl);
 
@@ -76,7 +73,7 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
       setReportIdentifier(audit.identifier);
       setReportDate(audit.start_date);
       setAuditVersion(audit.system_audit_type_version_id);
-      setChapters(audit.chapters?.map(ch => typeof ch === 'string' ? ch : ch.id));
+      setChapters(audit.chapters?.map(ch => (typeof ch === 'string' ? ch : ch.id)));
       setProject(audit.project_id);
       setEnvironmentType(audit.environment_id);
       setTest(audit.environment_test_id);
@@ -169,9 +166,7 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
         profile_id: evaluator,
         audit_type_id: reportType,
         audit_type_version_id: null,
-        audit_chapters: reportType === 'ATAG'
-          ? chapters.filter(id => !id.startsWith('WCAG_'))
-          : chapters,
+        audit_chapters: reportType === 'ATAG' ? chapters.filter(id => !id.startsWith('WCAG_')) : chapters,
         start_date: new Date(reportDate).toISOString(),
         product_name: product.name,
         product_version: product.version,
@@ -223,25 +218,27 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
   const steps = [
     {
       label: 'Step 1',
+      helpText: 'Select the type of the audit',
       component: <StepOne />
     },
     ...(!auditId
-      ? [{
-          label: 'Step 2',
-          component: <StepTwo isEdit={!!auditId} />
-        }]
+      ? [
+          {
+            label: 'Step 2',
+            helpText: 'Select the sections to include in the audit',
+            component: <StepTwo isEdit={!!auditId} />
+          }
+        ]
       : []),
     {
       label: 'Step 3',
-      component: (
-        <StepThree />
-      )
+      helpText: 'Select the test to use for the audit and add any optional additional information',
+      component: <StepThree />
     },
     {
       label: 'Step 4',
-      component: (
-        <StepFour />
-      )
+      helpText: 'Select the evaluator profile and add any optional additional information',
+      component: <StepFour />
     }
   ];
 
@@ -250,6 +247,8 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title={auditId ? 'Edit audit' : 'Add audit'}
         titleIcon={auditId ? <Icon icon={edit3} className={styles.edit} showShadow={true} /> : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
         dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: auditId })}
@@ -258,8 +257,7 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? (auditId ? 'Save' : 'Create') : 'Continue',
-          backLabel: step === 1 ? 'Cancel' : 'Back',
+          nextLabel: step === steps.length ? (auditId ? 'Save' : 'Create') : 'Next',
           isSubmitting,
           onBack: handleBack
         }}
@@ -281,10 +279,7 @@ export default function AuditForm({ open, onClose, onAuditAdded, auditId, trigge
             padding: 0
           }
         }}
-      >
-        <ProgressBar totalSteps={steps.length} currentStep={step} />
-        {steps[step - 1] && steps[step - 1].component}
-      </Dialog>
+      />
     </>
   );
 }

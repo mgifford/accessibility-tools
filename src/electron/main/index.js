@@ -70,7 +70,6 @@ const createWindow = async () => {
       try {
         port = await startNextJSServer();
         log.info('next js server started');
-        console.log('Next.js server started on port:', port);
         mainWindow.loadURL(`http://localhost:${port}${isEulaWindow ? '/eula' : ''}`);
       } catch (error) {
         console.error('Error starting Next.js server:', error);
@@ -368,7 +367,7 @@ export const buildMenu = async () => {
         {
           label: 'New Project',
           click: () => {
-            window.webContents.send('navigate', '/?openCreate=true');
+            window.webContents.send('navigate', '/projects?openCreate=true');
           }
         },
         {

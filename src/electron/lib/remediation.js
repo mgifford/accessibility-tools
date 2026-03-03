@@ -149,8 +149,7 @@ class RemediationLib {
     try {
       const where = {},
         include = [],
-        order = [],
-        testCaseWhere = {};
+        order = [];
       const Remediation = getModel('remediation');
       const hasSort = data.sort && data.sort.field && data.sort.direction;
       if (hasSort) {
@@ -189,27 +188,39 @@ class RemediationLib {
         };
       }
       if (data.system_standard_criteria && data.system_standard_criteria.length > 0) {
-        const TestCase = getModel('testCase');
-        const testCases = await TestCase.findAll({
+        const remediations = await Remediation.findAll({
           include: [{
             model: getModel('systemStandardCriteria'),
             as: 'criteria',
             where: {
               id: data.system_standard_criteria
-            }
+            },
+            required: true
           }]
         });
-        if (!testCaseWhere[Op.or]) {
-          testCaseWhere[Op.or] = [];
+        const remediationIds = remediations.map(r => r.id);
+        if (!where[Op.or]) {
+          where[Op.or] = [];
         }
-        const testCaseIds = testCases.map(t => t.id);
-        testCaseWhere[Op.or].push({ id: testCaseIds });
+        where[Op.or].push({ id: remediationIds });
       }
       if (data.test_cases) {
-        if (!testCaseWhere[Op.or]) {
-          testCaseWhere[Op.or] = [];
+        const remediations = await Remediation.findAll({
+          include: [{
+            model: getModel('testCase'),
+            as: 'test_cases',
+            where: {
+              id: data.test_cases
+            },
+            through: { attributes: [] },
+            required: true
+          }]
+        });
+        const remediationIds = remediations.map(r => r.id);
+        if (!where[Op.or]) {
+          where[Op.or] = [];
         }
-        testCaseWhere[Op.or].push({ id: data.test_cases });
+        where[Op.or].push({ id: remediationIds });
       }
       if (hasSort) {
         const { field, direction } = data.sort;
@@ -257,9 +268,7 @@ class RemediationLib {
           model: getModel('testCase'),
           as: 'test_cases',
           attributes: ['id', 'name', 'type', 'steps', 'result', 'instruction', 'is_selected'],
-          through: { attributes: [] },
-          where: testCaseWhere,
-          required: false
+          through: { attributes: [] }
         });
       }
       include.push({
@@ -336,7 +345,7 @@ class RemediationLib {
           }
         ]
       });
-      remediation.selectors = remediation.selectors ? remediation.selectors.join('\n') : [];
+      remediation.selectors = remediation.selectors ? remediation.selectors.join('\n') : '';
       return remediation.toJSON();
     } catch (e) {
       console.log('Error reading remediation: ', e);

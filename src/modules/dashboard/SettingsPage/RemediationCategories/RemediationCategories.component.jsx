@@ -1,10 +1,9 @@
+import { circlePlus, sliders, trash } from '@/assets/icons';
 import { SETTINGS_HEADINGS } from '@/constants/settings';
+import Icon from '@/modules/core/Icon';
 import Table from '@/modules/core/Table';
-import TablePagination from '@/modules/core/TablePagination';
 import styles from '@/modules/dashboard/SettingsPage/Settings.module.scss';
 import { useRemediationCategoryStore } from '@/stores';
-import { circlePlus, sliders, trash } from '@/assets/icons';
-import Icon from '@/modules/core/Icon';
 import { Box, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import classNames from 'classnames';
@@ -72,7 +71,7 @@ export default function RemediationCategories() {
   const getCategories = async (pagination) => {
     setSelectedRemediationCategoryId(null);
     try {
-      const CategoriesRes = await window.api.systemCategory.find({ ...pagination }, { detailed: true, count: true });
+      const CategoriesRes = await window.api.systemCategory.find({ limit: false }, { detailed: true });
       const { result, meta } = CategoriesRes;
       setCategories(result);
       setMeta(meta);
@@ -189,14 +188,13 @@ export default function RemediationCategories() {
             selectable
             selected={selectedCategories.map(r => r.id)}
             onSelectAllClick={handleSelectAllClick}
-            totalCount={meta.total_count}
+            totalCount={rows.length}
             className={styles.table}
             actionItems={actionItems}
             draggable
             moveRow={moveRow}
             onDrop={handleDrop}
           />
-          <TablePagination meta={meta} onChange={setPagination} className={styles.tablePagination} />
         </Box>
       </Box>
       {isDeleteRemediationCategoryDialogOpen && (

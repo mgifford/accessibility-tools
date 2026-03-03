@@ -62,7 +62,7 @@ const StepOne = () => {
     <div className={styles.stepOne}>
       <div className={styles.formField}>
         <TextField
-          label='Remediation name'
+          label={<Typography>Remediation name</Typography>}
           placeholder='E.g. Nov 12, 2024 remediation'
           required
           value={remediationName}

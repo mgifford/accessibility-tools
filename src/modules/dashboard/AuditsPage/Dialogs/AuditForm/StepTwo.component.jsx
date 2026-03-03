@@ -4,18 +4,7 @@ import { useEffect, useState } from 'react';
 import styles from './AuditForm.module.scss';
 
 const StepTwo = ({ isEdit = false }) => {
-  const {
-    reportType,
-    auditVersion,
-    conformanceTarget,
-    chapters,
-    setChapters,
-    hasInitializedChapters,
-    setHasInitializedChapters,
-    handleBlur,
-    touched,
-    errors
-  } = useAuditFormStore();
+  const { reportType, auditVersion, conformanceTarget, chapters, setChapters, handleBlur, touched, errors } = useAuditFormStore();
 
   const [auditChapterOptions, setAuditChapterOptions] = useState([]);
 
@@ -29,15 +18,9 @@ const StepTwo = ({ isEdit = false }) => {
 
       if (!isEdit) {
         const wcagRequired = getRequiredWcagIds();
-        const nonWcagIds = options
-          .filter(ch => ch.name !== 'WCAG')
-          .flatMap(ch => ch.sections.map(sec => sec.id));
+        const nonWcagIds = options.filter(ch => ch.name !== 'WCAG').flatMap(ch => ch.sections.map(sec => sec.id));
 
-        const combined = Array.from(new Set([
-          ...chapters,
-          ...nonWcagIds,
-          ...wcagRequired
-        ]));
+        const combined = Array.from(new Set([...chapters, ...nonWcagIds, ...wcagRequired]));
 
         setChapters(combined);
       }
@@ -60,10 +43,7 @@ const StepTwo = ({ isEdit = false }) => {
 
     const nonWcagIds = chapters.filter(id => !allWcagIds.includes(id));
 
-    const combined = Array.from(new Set([
-      ...nonWcagIds,
-      ...wcagRequired
-    ]));
+    const combined = Array.from(new Set([...nonWcagIds, ...wcagRequired]));
 
     setChapters(combined);
   }, [conformanceTarget, auditChapterOptions]);
@@ -96,12 +76,10 @@ const StepTwo = ({ isEdit = false }) => {
   };
 
   return (
-    <div>
+    <div className={styles.stepTwo}>
       {auditChapterOptions.map(chapter => (
         <div key={chapter.name} className={styles.chapterGroup}>
-          <Typography variant='h6' gutterBottom>
-            {chapter.name}
-          </Typography>
+          <Typography variant='h3'>{chapter.name}</Typography>
           <FormGroup>
             {chapter.sections.map((section) => {
               const isWcag = chapter.name === 'WCAG';
@@ -116,7 +94,7 @@ const StepTwo = ({ isEdit = false }) => {
                       onChange={handleCheckboxChange(section.id, isWcag)}
                       onBlur={() => handleBlur('chapters')}
                       disabled={isRequired}
-                      {...isRequired && { autoFocus: true }}
+                      {...(isRequired && { autoFocus: true })}
                     />
                   )}
                   label={section.name}

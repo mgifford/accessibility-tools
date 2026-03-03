@@ -46,6 +46,7 @@ class SystemCategoryLib {
    * @param {number} [input.limit] - The number of results to retrieve per page.
    * @param {{}} [opt]
    * @param {boolean} [opt.detailed] - whether to return detailed results or not
+   * @param {boolean} [opt.count] - whether to return count or not
    * @returns {Promise<Object[]>} Resolves with an array of system categories.
    */
   static async find(input = {}, opt = {}) {

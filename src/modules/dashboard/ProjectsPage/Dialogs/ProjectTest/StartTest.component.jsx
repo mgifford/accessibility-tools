@@ -1,14 +1,14 @@
 import { circlePlus } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon/Icon.component';
-import ProgressBar from '@/modules/core/ProgressBar';
 import StepOne from '@/modules/dashboard/ProjectsPage/Dialogs/ProjectTest/StepOne.component';
 import StepThree from '@/modules/dashboard/ProjectsPage/Dialogs/ProjectTest/StepThree.component';
 import StepTwo from '@/modules/dashboard/ProjectsPage/Dialogs/ProjectTest/StepTwo.component';
 import { useSnackbarStore } from '@/stores';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './ProjectTest.module.scss';
+import StepFour from './StepFour.component';
 
 export default function StartTest({ open, onClose, project, onTestStarted, triggerEl }) {
   const {
@@ -31,7 +31,6 @@ export default function StartTest({ open, onClose, project, onTestStarted, trigg
 
   const [environments, setEnvironments] = useState([]);
   const [selectedProject, setSelectedProject] = useState({});
-  const saveBtnRef = useRef(null);
 
   const fetchEnvironments = async () => {
     const data = await window.api.environment.find({ project_id: typeof project === 'string' ? project : project.id });
@@ -105,9 +104,10 @@ export default function StartTest({ open, onClose, project, onTestStarted, trigg
   };
 
   const steps = [
-    { label: 'Step 1', component: <StepOne environments={environments} /> },
-    { label: 'Step 2', component: <StepTwo saveBtnRef={saveBtnRef} /> },
-    { label: 'Step 3', component: <StepThree saveBtnRef={saveBtnRef} /> }
+    { label: 'Step 1', helpText: 'Choose the name and type of the environment', component: <StepOne environments={environments} /> },
+    { label: 'Step 2', helpText: 'Add additional notes about the project (optional)', component: <StepTwo /> },
+    { label: 'Step 3', helpText: 'Select structured, high-level pages whose layout and content are reused across child pages', component: <StepThree /> },
+    { label: 'Step 4', helpText: 'Randomly select sample web pages', component: <StepFour /> }
   ];
 
   return (
@@ -115,6 +115,8 @@ export default function StartTest({ open, onClose, project, onTestStarted, trigg
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title='Start test'
         titleIcon={<Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
         dialogHeaderClassName={styles.dialogHeader}
@@ -123,12 +125,10 @@ export default function StartTest({ open, onClose, project, onTestStarted, trigg
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? 'Create' : 'Continue',
-          backLabel: step === 1 ? 'Cancel' : 'Back',
+          nextLabel: step === steps.length ? 'Start' : 'Next',
           isSubmitting,
           onBack: handleBack
         }}
-        nextRef={saveBtnRef}
         className={styles.dialogContentContainer}
         classes={{
           container: styles.dialogContainer,
@@ -148,10 +148,7 @@ export default function StartTest({ open, onClose, project, onTestStarted, trigg
           }
         }}
         triggerEl={triggerEl}
-      >
-        <ProgressBar totalSteps={steps.length} currentStep={step} />
-        {steps[step - 1]?.component}
-      </Dialog>
+      />
     </>
   );
 }

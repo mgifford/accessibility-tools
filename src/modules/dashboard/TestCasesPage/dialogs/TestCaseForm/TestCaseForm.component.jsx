@@ -1,7 +1,6 @@
 import { circlePlus, edit3 } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon/Icon.component';
-import ProgressBar from '@/modules/core/ProgressBar';
 import { useSnackbarStore, useTestCaseFormStore } from '@/stores';
 import classNames from 'classnames';
 import { useEffect } from 'react';
@@ -34,6 +33,8 @@ export default function AddTestCase({ open, onClose, onTestCaseAdded, testCaseId
     setStandard,
     setCriteria
   } = useTestCaseFormStore();
+
+  const isEditForm = testCaseId && !duplicateTest;
 
   const { openSnackbar } = useSnackbarStore();
 
@@ -99,11 +100,11 @@ export default function AddTestCase({ open, onClose, onTestCaseAdded, testCaseId
         system_standard_criteria: criteria
       };
 
-      if (testCaseId && !duplicateTest) {
+      if (isEditForm) {
         payload.id = testCaseId;
       }
 
-      if (testCaseId && !duplicateTest) {
+      if (isEditForm) {
         await window.api.testCase.update(payload);
       } else {
         await window.api.testCase.create(payload);
@@ -122,10 +123,12 @@ export default function AddTestCase({ open, onClose, onTestCaseAdded, testCaseId
   const steps = [
     {
       label: 'Step 1',
+      helpText: `${isEditForm ? 'Edit' : 'Add'} test case details`,
       component: <StepOne />
     },
     {
       label: 'Step 2',
+      helpText: `${isEditForm ? 'Edit' : 'Select'} test case criteria and type`,
       component: <StepTwo />
     }
   ];
@@ -135,18 +138,17 @@ export default function AddTestCase({ open, onClose, onTestCaseAdded, testCaseId
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title={duplicateTest ? 'Duplicate test case' : testCaseId ? 'Edit test case' : 'Add test case'}
-        titleIcon={
-          testCaseId && !duplicateTest ? <Icon icon={edit3} className={styles.edit} showShadow={true} /> : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />
-        }
-        dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: testCaseId && !duplicateTest })}
+        titleIcon={isEditForm ? <Icon icon={edit3} className={styles.edit} showShadow={true} /> : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
+        dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: isEditForm })}
         dialogContentClassName={styles.dialogContent}
         dialogActionsClassName={styles.dialogActions}
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? (testCaseId ? 'Save' : 'Create') : 'Continue',
-          backLabel: step === 1 ? 'Cancel' : 'Back',
+          nextLabel: step === steps.length ? (testCaseId ? 'Save' : 'Create') : 'Next',
           isSubmitting,
           onBack: handleBack
         }}
@@ -168,10 +170,7 @@ export default function AddTestCase({ open, onClose, onTestCaseAdded, testCaseId
             padding: 0
           }
         }}
-      >
-        <ProgressBar totalSteps={steps.length} currentStep={step} />
-        {steps[step - 1] && steps[step - 1].component}
-      </Dialog>
+      />
     </>
   );
 }

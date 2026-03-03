@@ -1,11 +1,11 @@
 import { plus, trash2 } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
-import Sitemap from '@/modules/core/Sitemap';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
 import { Button, IconButton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useEffect, useRef, useState } from 'react';
 import styles from './ProjectTest.module.scss';
+import SitemapAutocomplete from '@/modules/core/SitemapAutocomplete';
 
 const getFilteredSitemap = (sitemap, structuredPages = [], randomPages = []) => {
   if (!sitemap || sitemap.length === 0) return [];
@@ -39,16 +39,47 @@ const getFilteredSitemap = (sitemap, structuredPages = [], randomPages = []) => 
   return filterChildren(sitemap || []);
 };
 
-const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage, saveBtnRef }) => {
+const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage }) => {
   const { environmentType, structuredPages, randomPages, errors } = useProjectTestFormStore();
-
-  const addPageBtnRef = useRef(null);
-
   const pages = pagesType === 'structured' ? structuredPages : pagesType === 'random' ? randomPages : [];
   const pagesField = pagesType === 'structured' ? 'structuredPages' : 'randomPages';
 
+  const addPageBtnRef = useRef(null);
+  const autocompleteRefs = useRef([]);
+  const deleteBtnRefs = useRef([]);
+  const prevPagesLengthRef = useRef(pages.length);
+
   const [sitemap, setSitemap] = useState([]);
   const [filteredSitemap, setFilteredSitemap] = useState([]);
+
+  const handleNextFocus = (index) => {
+    const deleteBtn = deleteBtnRefs.current[index];
+    if (deleteBtn) {
+      deleteBtn.focus();
+      return;
+    }
+    const next = autocompleteRefs.current[index + 1];
+    if (next) {
+      next.focus();
+      return;
+    }
+    if (!addPageBtnRef.current?.disabled) {
+      addPageBtnRef.current?.focus();
+    }
+  };
+
+  const handlePrevFocus = (index) => {
+    const prevDeleteBtn = deleteBtnRefs.current[index - 1];
+    if (prevDeleteBtn) {
+      prevDeleteBtn.focus();
+      return;
+    }
+    const prevAutocomplete = autocompleteRefs.current[index - 1];
+    if (prevAutocomplete) {
+      prevAutocomplete.focus();
+      return;
+    }
+  };
 
   useEffect(() => {
     const getSitemap = async (envId) => {
@@ -64,19 +95,31 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage, sav
     setFilteredSitemap(getFilteredSitemap(sitemap, structuredPages, randomPages));
   }, [sitemap, structuredPages, randomPages]);
 
+  useEffect(() => {
+    const prevLength = prevPagesLengthRef.current;
+    if (pages.length > prevLength) {
+      setTimeout(() => {
+        const lastAutocomplete = autocompleteRefs.current[pages.length - 1];
+        lastAutocomplete?.focus();
+      }, 0);
+    }
+    prevPagesLengthRef.current = pages.length;
+  }, [pages.length]);
+
   if (pages.length === 0) return;
 
   return (
     <>
       {pages.map((page, index) => {
         const shouldAutoFocus
-          = (!page?.id) && (index === 0 || index === structuredPages.length - 1);
+          = (!page?.id) && (index === 0 || index === pages.length - 1);
         return (
           <div key={index} className={styles.pageRow}>
             <div className={styles.selectContainer}>
               <Typography variant='body1'>{index + 1}</Typography>
-              <Sitemap
-                type='autocomplete'
+              <SitemapAutocomplete
+                ref={el => (autocompleteRefs.current[index] = el)}
+                id={`sitemap-autocomplete-${index}`}
                 sitemap={filteredSitemap}
                 value={page}
                 environmentType={environmentType}
@@ -87,21 +130,32 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage, sav
                 rightIcon
                 autoFocus={shouldAutoFocus}
                 onAutocompleteBlurNext={() => {
-                  if (!addPageBtnRef.current?.disabled) {
-                    addPageBtnRef.current.focus();
-                  } else if (saveBtnRef?.current) {
-                    saveBtnRef.current.focus();
-                  }
+                  handleNextFocus(index);
                 }}
-                saveBtnRef={saveBtnRef}
+                onAutocompleteBlurPrev={() => {
+                  handlePrevFocus(index);
+                }}
               />
               {pages.length > 1 && index !== 0 && (
                 <IconButton
+                  ref={el => (deleteBtnRefs.current[index] = el)}
                   onClick={() => {
                     removePage(index);
                     setTimeout(() => {
                       addPageBtnRef.current?.focus();
                     }, 0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Tab' || e.shiftKey) return;
+                    e.preventDefault();
+                    const next = autocompleteRefs.current[index + 1];
+                    if (next) {
+                      next.focus();
+                      return;
+                    }
+                    if (!addPageBtnRef.current?.disabled) {
+                      addPageBtnRef.current?.focus();
+                    }
                   }}
                   aria-label={`Remove page ${index + 1}`}
                   className={styles.deleteButton}
@@ -113,10 +167,12 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage, sav
           </div>
         );
       })}
-      <Button ref={addPageBtnRef} variant='text' className={styles.addPageButton} onClick={addPage}>
-        <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} />
-        <Typography variant='body2'>Add another page</Typography>
-      </Button>
+      { pages[pages.length - 1].id && (
+        <Button ref={addPageBtnRef} variant='text' className={styles.addPageButton} onClick={addPage}>
+          <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={plus} />
+          <Typography variant='body2'>Add another page</Typography>
+        </Button>
+      )}
     </>
   );
 };

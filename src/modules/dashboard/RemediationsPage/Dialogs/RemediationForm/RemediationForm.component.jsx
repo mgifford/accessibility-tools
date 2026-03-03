@@ -1,7 +1,6 @@
 import { circlePlus, edit3 } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon';
-import ProgressBar from '@/modules/core/ProgressBar';
 import { useRemediationFormStore, useSnackbarStore } from '@/stores';
 import classNames from 'classnames';
 import { useEffect } from 'react';
@@ -32,6 +31,8 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
     tests,
     setTests
   } = useRemediationFormStore();
+
+  const isEditForm = remediationId && !duplicateRemediation;
 
   const { openSnackbar } = useSnackbarStore();
 
@@ -93,12 +94,12 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
       test_cases: tests
     };
 
-    if (remediationId && !duplicateRemediation) {
+    if (isEditForm) {
       payload.id = remediationId;
     }
 
     try {
-      if (remediationId && !duplicateRemediation) {
+      if (isEditForm) {
         await window.api.remediation.update(payload);
       } else {
         await window.api.remediation.create(payload);
@@ -108,7 +109,8 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
       onClose();
     } catch (err) {
       openSnackbar({
-        message: remediationId && !duplicateRemediation ? 'Failed to update remediation.' : 'Failed to create remediation.'
+        message: `Failed to ${isEditForm ? 'update' : 'create'} remediation`,
+        severity: 'error'
       });
     } finally {
       setIsSubmitting(false);
@@ -118,10 +120,12 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
   const steps = [
     {
       label: 'Step 1',
+      helpText: `${isEditForm ? 'Edit' : 'Add'} remediation details`,
       component: <StepOne />
     },
     {
       label: 'Step 2',
+      helpText: `${isEditForm ? 'Select' : 'Add'} remediation category, criteria, selectors and related test cases`,
       component: <StepTwo />
     }
   ];
@@ -131,24 +135,17 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title={duplicateRemediation ? 'Duplicate remediation' : remediationId ? 'Edit remediation' : 'Add remediation'}
-        titleIcon={
-          remediationId && !duplicateRemediation
-            ? (
-              <Icon icon={edit3} className={styles.edit} showShadow={true} />
-              )
-            : (
-              <Icon icon={circlePlus} className={styles.icon} showShadow={true} />
-              )
-        }
-        dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: remediationId && !duplicateRemediation })}
+        titleIcon={isEditForm ? <Icon icon={edit3} className={styles.edit} showShadow={true} /> : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
+        dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: isEditForm })}
         dialogContentClassName={styles.dialogContent}
         dialogActionsClassName={styles.dialogActions}
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? (remediationId ? 'Save' : 'Create') : 'Continue',
-          backLabel: step === 1 ? 'Cancel' : 'Back',
+          nextLabel: step === steps.length ? (remediationId ? 'Save' : 'Create') : 'Next',
           isSubmitting,
           onBack: handleBack
         }}
@@ -170,10 +167,7 @@ export default function RemediationForm({ open = false, onClose = () => {}, onRe
             padding: 0
           }
         }}
-      >
-        <ProgressBar totalSteps={steps.length} currentStep={step} />
-        {steps[step - 1] && steps[step - 1].component}
-      </Dialog>
+      />
     </>
   );
 }

@@ -7,26 +7,54 @@ import classNames from 'classnames';
 import styles from './ProjectTest.module.scss';
 import SitemapForm from './SitemapForm';
 
-const StepThree = ({ saveBtnRef }) => {
-  const { randomPages, addRandomPage, removeRandomPage, handleChange } = useProjectTestFormStore();
+const StepThree = () => {
+  const { structuredPages, addStructuredPage, removeStructuredPage, handleChange } = useProjectTestFormStore();
 
   const onSiteMapUpdate = async (newPageValue, index) => {
-    const updatedRandomPages = [...randomPages];
-    updatedRandomPages[index] = newPageValue || { id: '', label: '' };
-    handleChange('randomPages', updatedRandomPages);
+    const updatedStructuredPages = [...structuredPages];
+    updatedStructuredPages[index] = newPageValue || { id: '', label: '' };
+    handleChange('structuredPages', updatedStructuredPages);
   };
 
   return (
     <div className={styles.stepThree}>
       <Typography variant='body1' className={styles.stepHeader}>
-        Randomly selected sample
-        <Tooltip title='Select web pages that reflect all identified (1) common web pages, (2) essential functionality, (3) types of web pages, (4) web technologies relied upon, and (5) other relevant web pages. For more information, see WCAG-EM Step 3.a: Include a Structured Sample. Note: ‘Web pages’ include different ‘web page states’; see definition of web page states.'>
+        Structured sample web pages
+        <Tooltip
+          title={(
+            <>
+              <Typography className={styles.toolTip} sx={{ mb: 1 }}>
+                Select web pages that reflect all identified:
+              </Typography>
+
+              <ol style={{ margin: 0, paddingLeft: '18px' }}>
+                <li>common web pages</li>
+                <li>essential functionality</li>
+                <li>types of web pages</li>
+                <li>web technologies relied upon</li>
+                <li>other relevant web pages</li>
+              </ol>
+
+              <Typography className={styles.toolTip} sx={{ mt: 1 }}>
+                For more information, see{' '}
+                <a href='https://www.w3.org/TR/WCAG-EM/#step3a' target='_blank'>
+                  WCAG-EM Step 3.a: Include a Structured Sample
+                </a>
+                .
+              </Typography>
+
+              <Typography className={styles.toolTip} variant='caption' display='block' sx={{ mt: 1 }}>
+                Note: ‘Web pages’ include different ‘web page states’; see definition of web page states.
+              </Typography>
+            </>
+          )}
+        >
           <span className={styles.infoIcon}>
             <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
           </span>
         </Tooltip>
       </Typography>
-      <SitemapForm pagesType='random' onSiteMapUpdate={onSiteMapUpdate} addPage={addRandomPage} removePage={removeRandomPage} saveBtnRef={saveBtnRef} />
+      <SitemapForm pagesType='structured' onSiteMapUpdate={onSiteMapUpdate} addPage={addStructuredPage} removePage={removeStructuredPage} />
     </div>
   );
 };

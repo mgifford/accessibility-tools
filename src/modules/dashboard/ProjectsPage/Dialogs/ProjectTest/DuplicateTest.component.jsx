@@ -1,14 +1,14 @@
+import { circlePlus } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon/Icon.component';
+import { useSnackbarStore } from '@/stores';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
 import { useEffect, useState } from 'react';
 import styles from './ProjectTest.module.scss';
+import StepFour from './StepFour.component';
 import StepOne from './StepOne.component';
 import StepThree from './StepThree.component';
 import StepTwo from './StepTwo.component';
-import { useSnackbarStore } from '@/stores';
-import ProgressBar from '@/modules/core/ProgressBar';
-import { circlePlus } from '@/assets/icons';
 
 export default function DuplicateTest({ open, onClose, testId, project, onTestDuplicated }) {
   const {
@@ -118,9 +118,10 @@ export default function DuplicateTest({ open, onClose, testId, project, onTestDu
   };
 
   const steps = [
-    { label: 'Step 1', component: <StepOne environments={environments} /> },
-    { label: 'Step 2', component: <StepTwo /> },
-    { label: 'Step 3', component: <StepThree /> }
+    { label: 'Step 1', helpText: 'Choose the name and type of the environment', component: <StepOne environments={environments} /> },
+    { label: 'Step 2', helpText: 'Add additional notes about the project (optional)', component: <StepTwo /> },
+    { label: 'Step 3', helpText: 'Select structured, high-level pages whose layout and content are reused across child pages', component: <StepThree /> },
+    { label: 'Step 4', helpText: 'Randomly select sample web pages', component: <StepFour /> }
   ];
 
   return (
@@ -128,6 +129,8 @@ export default function DuplicateTest({ open, onClose, testId, project, onTestDu
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title='Duplicate test'
         titleIcon={<Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
         dialogHeaderClassName={styles.dialogHeader}
@@ -136,8 +139,7 @@ export default function DuplicateTest({ open, onClose, testId, project, onTestDu
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: step === steps.length ? 'Save' : 'Continue',
-          backLabel: step === 1 ? 'Cancel' : 'Back',
+          nextLabel: step === steps.length ? 'Start' : 'Next',
           isSubmitting,
           onBack: handleBack
         }}
@@ -159,10 +161,7 @@ export default function DuplicateTest({ open, onClose, testId, project, onTestDu
             padding: 0
           }
         }}
-      >
-        <ProgressBar totalSteps={steps.length} currentStep={step} />
-        {steps[step - 1]?.component}
-      </Dialog>
+      />
     </>
   );
 }

@@ -1,10 +1,10 @@
+import { circlePlus, sliders, trash } from '@/assets/icons';
 import { SETTINGS_HEADINGS } from '@/constants/settings';
+import Icon from '@/modules/core/Icon';
 import Table from '@/modules/core/Table';
 import TablePagination from '@/modules/core/TablePagination';
 import DeleteEnvironment from '@/modules/dashboard/SettingsPage/Environments/Dialogs/DeleteEnvrionment';
-import { useEnvironmentsStore } from '@/stores';
-import { circlePlus, trash, sliders } from '@/assets/icons';
-import Icon from '@/modules/core/Icon';
+import { useEnvironmentsStore, useSystemStore } from '@/stores';
 import { Box, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import classNames from 'classnames';
@@ -29,6 +29,8 @@ export default function Environments() {
     pagination,
     setPagination
   } = useEnvironmentsStore();
+
+  const { updateEnvironment } = useSystemStore();
 
   const [selectedEnvironmentId, setSelectedEnvironmentId] = useState(null);
   const [isEnvironmentFormOpen, setEnvironmentFormOpen] = useState(false);
@@ -60,10 +62,7 @@ export default function Environments() {
       id: environment.id,
       isSystem: environment.is_system,
       isSelected: environment.is_selected,
-      items: [
-        { label: environment.name },
-        { label: environment.is_system ? 'Standard' : 'Custom' }
-      ],
+      items: [{ label: environment.name }, { label: environment.is_system ? 'Standard' : 'Custom' }],
       disableActions: environment.is_system
     };
   });
@@ -105,12 +104,16 @@ export default function Environments() {
   }, [openCreate]);
 
   const handleRowClick = async (row) => {
+    let env;
     if (selectedEnvironments.find(t => t.id === row.id)) {
       removeSelectedEnvironment(row.id);
-      await window.api.systemEnvironment.update({ id: row.id, is_selected: false });
+      env = await window.api.systemEnvironment.update({ id: row.id, is_selected: false });
     } else {
       addSelectedEnvironment(row);
-      await window.api.systemEnvironment.update({ id: row.id, is_selected: true });
+      env = await window.api.systemEnvironment.update({ id: row.id, is_selected: true });
+    }
+    if (env) {
+      updateEnvironment(row.id, env);
     }
   };
 
@@ -188,15 +191,16 @@ export default function Environments() {
             className={styles.table}
             actionItems={actionItems}
           />
-          <TablePagination
-            meta={meta}
-            onChange={setPagination}
-            className={styles.tablePagination}
-          />
+          <TablePagination meta={meta} onChange={setPagination} className={styles.tablePagination} />
         </Box>
       </Box>
       {isDeleteEnvironmentDialogOpen && (
-        <DeleteEnvironment open={isDeleteEnvironmentDialogOpen} onClose={() => setIsDeleteEnvironmentDialogOpen(false)} environmentId={selectedEnvironmentId} onDeleteSuccess={getEnvironments} />
+        <DeleteEnvironment
+          open={isDeleteEnvironmentDialogOpen}
+          onClose={() => setIsDeleteEnvironmentDialogOpen(false)}
+          environmentId={selectedEnvironmentId}
+          onDeleteSuccess={getEnvironments}
+        />
       )}
     </>
   );

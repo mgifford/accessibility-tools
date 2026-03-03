@@ -23,6 +23,46 @@
   }
 }
 
+.projectDetails {
+  padding: 16px 14px;
+  width: 100%;
+  overflow-y: auto;
+  .projectTitleContainer {
+    width: 100%;
+    border-bottom: 1px solid $palette-accordion-border;
+    padding-bottom: 16px;
+    margin-bottom: 6px;
+    .projectName {
+      text-transform: uppercase;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .selectLabel {
+      p {
+        font-size: 13px;
+        color: $palette-primary-main-3;
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-main-3;
+        }
+      }
+      font-weight: 400;
+    }
+  }
+  .testsSelect {
+    margin-top: 0;
+    width: 100%;
+  }
+  .testsSelector {
+    div {
+      font-size: 13px;
+      padding-block: 4px;
+      font-weight: 500;
+      font-family: $regular-font;
+      box-shadow: 0px 1px 2px 0px #1018280d;
+    }
+  }
+}
+
 .accordion {
   border-radius: 0 !important;
   background-color: $palette-background-resizable-blocks;
@@ -36,6 +76,19 @@
   .accordionDetails {
     padding: 0;
     border: none;
+  }
+
+  .accordionSummaryTitle {
+    padding-left: 0 !important;
+    text-transform: none;
+    p {
+      font-weight: 400 !important;
+      font-size: 13px !important;
+      color: $palette-primary-main-3 !important;
+      @media (prefers-color-scheme: dark) {
+        color: $palette-dark-primary-main-3 !important;
+      }
+    }
   }
 
   &.overflowedAccordion {
@@ -99,7 +152,10 @@
     }
   }
   .progressAccordionDetails {
-    padding: 16px 0 16px 16px;
+    padding: 16px;
+    &:has(.statsContainer) {
+      padding: 0;
+    }
   }
   .accordionTitle {
     width: 100%;
@@ -123,14 +179,37 @@
         white-space: nowrap;
         overflow: hidden;
       }
+      p {
+        line-height: 1;
+      }
+      .infoIcon {
+        line-height: 0;
+        svg {
+          color: inherit;
+        }
+      }
     }
     .caption {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      button {
+        text-transform: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: $palette-primary-main;
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-main;
+        }
+        &:hover {
+          text-decoration: underline;
+        }
+      }
       svg {
         color: $palette-primary-icon;
-        font-size: 36px;
+        font-size: 16px;
+        border-radius: 0;
       }
       :disabled {
         svg {
@@ -145,6 +224,7 @@
     .description {
       font-size: 12px;
       font-style: italic;
+      line-height: 1;
     }
     .progressBar {
       height: 8px;
@@ -208,7 +288,8 @@
     .statsContainer {
       overflow-y: auto;
       max-height: 350px;
-      padding-right: 16px;
+      padding: 16px;
+      padding-bottom: 0;
     }
   }
 

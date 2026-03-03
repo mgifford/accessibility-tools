@@ -1,0 +1,186 @@
+@import "constants/theme";
+
+.root {
+  &.primary {
+    .actionBtn {
+      background-color: $palette-primary-main !important;
+      color: $palette-primary-contrastText !important;
+      border-color: $palette-primary-main !important;
+      @media (prefers-color-scheme: dark) {
+        background-color: $palette-dark-primary-main !important;
+        color: $palette-dark-primary-contrastText !important;
+        border-color: $palette-dark-primary-main !important;
+      }
+    }
+  }
+  .dialog {
+    height: "fit-content";
+    padding: 24px;
+    border-radius: 12px;
+    position: relative;
+    background-color: $palette-content-background;
+    @media (prefers-color-scheme: dark) {
+      background-color: $palette-dark-background-main-nav;
+      --Paper-overlay: none !important;
+    }
+  }
+
+  .closeDialogButton {
+    position: absolute;
+    top: 12px;
+    right: 22px;
+    z-index: 1;
+  }
+
+  .dialogContentContainer {
+    padding-top: 8px;
+    padding-left: 84px;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100%;
+    position: relative;
+
+    .dialogHeader {
+      width: 100%;
+      text-align: center;
+      padding: 0;
+      border-bottom: none;
+      display: flex;
+      align-items: center;
+      gap: 44px;
+
+      h2 {
+        font-size: 18px;
+        font-weight: 500;
+        text-align: left;
+        color: $palette-primary-text;
+        line-height: 28px;
+
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-text;
+        }
+      }
+
+      p {
+        font-size: 15px;
+        margin-top: 4px;
+        font-weight: 400;
+        text-align: left;
+        color: $palette-primary-main-3;
+
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-main-3;
+        }
+      }
+
+      .dialogHeaderContent {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .iconContainer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        left: 24px;
+        top: 20px;
+      }
+    }
+
+    .dialogContent {
+      margin-top: 8px;
+      width: fit-content;
+      padding-bottom: 0;
+      overflow: visible;
+      margin-bottom: 32px;
+    }
+
+    .dialogActions {
+      .actionButtons {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      button {
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 16px;
+        line-height: 24px;
+        height: auto;
+        text-transform: none;
+        font-family: $regular-font;
+        margin: 0;
+      }
+      .actionBtn {
+        white-space: nowrap;
+        min-width: max-content;
+        background-color: $palette-action-alert;
+        border: 2px solid $palette-action-alert;
+        &[disabled] {
+          background-color: $palette-error-main-2;
+          border-color: $palette-error-main-2;
+        }
+        p {
+          color: $palette-primary-contrastText;
+          @media (prefers-color-scheme: dark) {
+            color: $palette-dark-primary-text;
+          }
+        }
+      }
+      .cancelBtn {
+        border-color: $palette-secondary-main;
+        p {
+          color: $palette-primary-main-3;
+        }
+        &:hover {
+          background-color: $palette-secondary-main;
+        }
+        @media (prefers-color-scheme: dark) {
+          border-color: $palette-dark-border;
+          background-color: $palette-dark-background-2;
+          p {
+            color: $palette-dark-primary-text-2;
+          }
+          &:hover {
+            background-color: darken($palette-dark-background-2, 5);
+          }
+        }
+      }
+    }
+
+    .checkboxLabel {
+      p {
+        font-weight: 500;
+        color: $palette-primary-main-3;
+        font-size: 14px;
+      }
+    }
+
+    .checkboxBase {
+      width: 20px;
+      height: 20px;
+      border: 2px solid $palette-secondary-main;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .checkboxX {
+      color: $palette-primary-main-3;
+      font-size: 14px;
+      font-weight: bold;
+      position: absolute;
+    }
+
+    .progressSpinner {
+      position: relative;
+      left: -10px;
+    }
+  }
+}

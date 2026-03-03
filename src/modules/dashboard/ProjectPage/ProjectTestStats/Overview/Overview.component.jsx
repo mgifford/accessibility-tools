@@ -43,6 +43,11 @@ const Overview = ({ stats }) => {
     automated -= manual;
   }
 
+  let stackOrder = 'descending';
+  if ((stats.manual > stats.automated && manual > automated) || (stats.manual < stats.automated && manual < automated)) {
+    stackOrder = 'ascending';
+  }
+
   return (
     <>
       <Box className={style.section}>
@@ -107,7 +112,7 @@ const Overview = ({ stats }) => {
               showMark: false,
               disableHighlight: true,
               color: theme.palette.charts.warning,
-              stackOrder: 'ascending',
+              stackOrder,
               valueFormatter: () => stats.manual?.toLocaleString(),
               curve: 'monotoneX',
               labelMarkType: 'circle'
@@ -121,7 +126,7 @@ const Overview = ({ stats }) => {
               showMark: false,
               disableHighlight: true,
               color: theme.palette.charts.success,
-              stackOrder: 'ascending',
+              stackOrder,
               valueFormatter: () => stats.automated?.toLocaleString(),
               curve: 'monotoneX',
               labelMarkType: 'circle'

@@ -80,7 +80,7 @@ const Audit = () => {
 
   const handleFormSave = async (sectionId) => {
     const sectionState = formState[sectionId];
-    if (!sectionState) return;
+    if (!sectionState.level) return;
 
     try {
       await window.api.audit.updateAuditReportItem({
@@ -106,6 +106,10 @@ const Audit = () => {
 
   const options = audit.system_audit_type_id.startsWith('WCAG') || audit.system_audit_type_id.startsWith('ATAG') ? LEVEL_OPTIONS_WCAG_ATAG : LEVEL_OPTIONS_VPAT;
 
+  const allLevelsDefined = selectedCriterion.types.every(
+    section => !!formState[section.id]?.level
+  );
+
   return (
     <Stack height='100%' width='100%' padding={3} spacing={4} className={styles.root}>
       <Typography variant='h4' sx={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
@@ -125,6 +129,7 @@ const Audit = () => {
                 <Select
                   label='Level'
                   options={options}
+                  required
                   placeHolder='Select a level'
                   value={formState[section.id]?.level}
                   onChange={value => handleChange(section.id, 'level', value)}
@@ -149,7 +154,7 @@ const Audit = () => {
             </Box>
           ))}
           {nextItem && (
-            <Button onClick={handleNext} className={styles.nextButton}>
+            <Button disabled={!allLevelsDefined} onClick={handleNext} className={styles.nextButton}>
               Next
             </Button>
           )}

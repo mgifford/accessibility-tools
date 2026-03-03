@@ -1,10 +1,9 @@
+import { checkboxBlank, checkboxChecked, filter, minus, plus, xIcon } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
-import { plus, xIcon, minus, checkboxBlank, checkboxChecked } from '@/assets/icons';
 import { Box, Button, Checkbox, Collapse, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Typography } from '@mui/material';
+import classNames from 'classnames';
 import { Fragment, useEffect, useState } from 'react';
 import style from './DrawerFilter.module.scss';
-import classNames from 'classnames';
-import { filter } from '@/assets/icons';
 
 const DrawerFilter = ({
   isOpen = false,
@@ -157,7 +156,7 @@ const DrawerFilter = ({
                 className={style.expandButton}
                 tabIndex={-1}
               >
-                {isOpen ? <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={minus} /> : <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={plus} />}
+                <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={isOpen ? minus : plus} />
               </IconButton>
               )
             : null}
@@ -190,21 +189,15 @@ const DrawerFilter = ({
       <Box className={style.filterWrapper}>
         <Box className={style.filters}>
           <Box className={style.header}>
-            <Box className={style.left}>
-              <Icon className={classNames('clym-contrast-exclude', style.headerIcon)} icon={filter} showShadow={true} shadowSize={4} />
-              <Typography>Filter by</Typography>
-            </Box>
-
+            <Icon className={classNames('clym-contrast-exclude', style.headerIcon)} icon={filter} showShadow={true} shadowSize={4} />
+            <Typography variant='h2'>Filter by</Typography>
           </Box>
           <List className={style.list} dense>
             {items.map((item) => {
               const isOpen = openItems[`${item.id}`] || false;
               return (
                 <Fragment key={item.id}>
-                  <ListItem
-                    disablePadding
-                    className={style.listItem}
-                  >
+                  <ListItem disablePadding className={style.listItem}>
                     <ListItemButton className={style.listButton} onClick={e => handleOpenItems(e, item)}>
                       <IconButton
                         size='small'
@@ -214,7 +207,7 @@ const DrawerFilter = ({
                         className={style.expandButton}
                         tabIndex={-1}
                       >
-                        {isOpen ? <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={minus} /> : <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={plus} />}
+                        <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={isOpen ? minus : plus} />
                       </IconButton>
                       <ListItemText primary={<Typography variant='h3'>{item.heading}</Typography>} sx={{ pr: 5 }} />
                     </ListItemButton>

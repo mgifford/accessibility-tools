@@ -1,6 +1,10 @@
 @import "constants/theme";
 
 .audits {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: 0.5rem;
   .pageHeading {
     font-size: 24px;
     font-family: $regular-font;
@@ -36,7 +40,7 @@
         svg {
           font-size: 20px;
           margin-left: 8px;
-          fill:$palette-button-main;
+          fill: $palette-button-main;
           stroke: $palette-button-main;
           path {
             fill: $palette-button-main;
@@ -48,7 +52,7 @@
 
   .auditsList {
     display: grid;
-    align-items: center;
+    align-items: stretch;
     grid-template-columns: repeat(4, 1fr);
     grid-gap: 32px;
     margin-top: 34px;
@@ -65,9 +69,14 @@
       cursor: pointer;
       font-family: $regular-font;
       color: $palette-primary-text;
+      border: 2px solid $palette-card-border;
+      border-radius: 8px;
+      padding: 8px;
+      background: $palette-card-background;
 
       @media (prefers-color-scheme: dark) {
         color: $palette-dark-primary-text;
+        background: $palette-dark-card-background;
       }
 
       .auditImg {
@@ -75,7 +84,6 @@
         aspect-ratio: 16/9;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: $palette-dropdown-shadow;
         img {
           width: 100%;
           height: 100%;
@@ -104,6 +112,7 @@
       .auditInfo {
         display: flex;
         justify-content: space-between;
+        margin-top: 8px;
 
         .status {
           align-self: center;
@@ -132,14 +141,63 @@
           }
         }
 
+        .title {
+          font-size: 16px;
+          font-weight: 600;
+          color: $palette-primary-main-3;
+          @media (prefers-color-scheme: dark) {
+            color: $palette-dark-primary-main-3;
+          }
+        }
+
         .auditMenu {
+          margin-right: -8px;
           svg {
             display: block;
           }
         }
       }
       .icon {
-        font-size: 36px;
+        font-size: 20px;
+        color: $palette-card-menu-icon;
+      }
+    }
+
+    .newAudit {
+      width: 100%;
+      height: 100%;
+      border-style: dotted;
+      background: transparent;
+      position: relative;
+
+      .auditInfo {
+        height: 30px;
+        margin-top: 8px;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .icon {
+        color: black;
+        border: 2px solid black;
+        font-size: 24px;
+        margin-top: var(--shadow-size);
+      }
+
+      .title {
+        margin-top: 24px;
+        color: $palette-primary-main !important;
+        font-weight: 600;
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-main-3;
+        }
       }
     }
   }

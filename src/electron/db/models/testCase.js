@@ -1,5 +1,32 @@
 export const TEST_CASE_TYPE_VALUES = ['MANUAL', 'AUTOMATIC'];
 
+const beforeDestroy = async (models, testCase, options) => {
+  const transaction = options.transaction;
+  const { id } = testCase;
+  const testCaseEnvironmentTestPages = await models.testCaseEnvironmentTestPage.findAll({
+    where: { test_case_id: id },
+    transaction
+  });
+  const testCaseEnvironmentTestPageIds = testCaseEnvironmentTestPages.map(testCaseEnvironmentTestPage => testCaseEnvironmentTestPage.id);
+  const testCaseEnvironmentTestPageTargets = await models.testCaseEnvironmentTestPageTarget.findAll({
+    where: { test_case_page_id: testCaseEnvironmentTestPageIds },
+    transaction
+  });
+  const testCaseEnvironmentTestPageTargetIds = testCaseEnvironmentTestPageTargets.map(testCaseEnvironmentTestPageTarget => testCaseEnvironmentTestPageTarget.id);
+  await models.testPageTargetOccurrence.destroy({
+    where: { page_target_id: testCaseEnvironmentTestPageTargetIds },
+    transaction
+  });
+  await models.testCaseEnvironmentTestPageTarget.destroy({
+    where: { test_case_page_id: testCaseEnvironmentTestPageIds },
+    transaction
+  });
+  await models.testCaseEnvironmentTestPage.destroy({
+    where: { test_case_id: id },
+    transaction
+  });
+};
+
 export default (sequelize, DataTypes) => {
   const TestCase = sequelize.define('testCase', {
     id: {
@@ -33,6 +60,10 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: true
     }
+  });
+
+  TestCase.addHook('beforeDestroy', async (testCase, options) => {
+    await beforeDestroy(sequelize.models, testCase, options);
   });
 
   TestCase.associate = (models) => {

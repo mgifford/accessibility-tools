@@ -1,36 +1,27 @@
-import { useAuditFormStore } from '@/stores/useAuditFormStore';
-import { useEffect, useState } from 'react';
-import styles from './AuditForm.module.scss';
-import Select from '@/modules/core/Select';
-import { Box, Button, TextField, Typography } from '@mui/material';
-import Tooltip from '@mui/material/Tooltip';
-import ProfilesForm from '@/modules/dashboard/SettingsPage/Profiles/Dialogs/ProfilesForm';
 import { circlePlus, info } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
+import Select from '@/modules/core/Select';
+import ProfilesForm from '@/modules/dashboard/SettingsPage/Profiles/Dialogs/ProfilesForm';
+import { useAuditFormStore } from '@/stores/useAuditFormStore';
+import { Box, Button, TextField, Typography } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
 import classNames from 'classnames';
+import { useEffect, useState } from 'react';
+import styles from './AuditForm.module.scss';
 
 const StepFour = () => {
-  const {
-    evaluator,
-    setEvaluator,
-    evaluation,
-    setEvaluation,
-    executiveSummary,
-    setExecutiveSummary,
-    handleBlur,
-    touched,
-    errors
-  } = useAuditFormStore();
+  const { evaluator, setEvaluator, evaluation, setEvaluation, executiveSummary, setExecutiveSummary, handleBlur, touched, errors } = useAuditFormStore();
 
   const [evaluatorOptions, setEvaluatorOptions] = useState([]);
   const [isProfileFormOpen, setProfileFormOpen] = useState(false);
 
   const fetchProfiles = async () => {
     const data = await window.api.profile.find();
-    const mappedData = data?.result?.map(p => ({
-      value: p.id,
-      label: `${p.first_name} ${p.last_name}`
-    })) || [];
+    const mappedData
+      = data?.result?.map(p => ({
+        value: p.id,
+        label: `${p.first_name} ${p.last_name}`
+      })) || [];
 
     setEvaluatorOptions(mappedData);
 
@@ -54,8 +45,8 @@ const StepFour = () => {
   };
 
   return (
-    <div className={styles.stepThree}>
-      <Typography variant='body1' sx={{ mt: 2, fontWeight: 700 }}>
+    <div className={styles.stepFour}>
+      <Typography variant='h3' sx={{ mt: 2, fontWeight: 700 }}>
         Evaluator
       </Typography>
       <div className={styles.formField}>
@@ -68,6 +59,7 @@ const StepFour = () => {
               touched={touched.evaluator}
               errors={errors.evaluator}
               options={evaluatorOptions}
+              className={styles.select}
             />
             )
           : (
@@ -84,12 +76,12 @@ const StepFour = () => {
           </Typography>
         )}
       </div>
-      <Typography variant='body1' sx={{ mt: 2, fontWeight: 700 }}>
+      <Typography variant='h3' sx={{ mt: 2, fontWeight: 700 }}>
         Evaluation
       </Typography>
       <Box className={styles.formField}>
         <TextField
-          label='Notes'
+          label={<Typography>Notes</Typography>}
           value={evaluation.notes}
           multiline
           rows={3}
@@ -222,7 +214,7 @@ const StepFour = () => {
           helperText={touched?.evaluation?.license && errors.evaluation?.license}
         />
       </Box>
-      <Typography variant='body1' sx={{ mt: 2, fontWeight: 700 }}>
+      <Typography variant='h3' sx={{ mt: 2, fontWeight: 700 }}>
         Executive Summary
       </Typography>
       <div className={styles.formField}>

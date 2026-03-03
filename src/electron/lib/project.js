@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { Op } from 'sequelize';
+import ArchiveLib from './archive';
 import CoreLib from './core';
 import { getModel } from './db';
 import joiLib from './joi';
@@ -138,8 +139,19 @@ class ProjectLib {
     const data = await joiLib.validate(schema, input);
     try {
       const Project = getModel('project');
-      const project = await Project.findByPk(data.id);
+      const project = await Project.findByPk(data.id, {
+        include: [{
+          model: getModel('environment'),
+          as: 'environments',
+          include: [{
+            model: getModel('environmentTest'),
+            as: 'tests'
+          }]
+        }]
+      });
       if (!project) throw new Error('Project not found');
+      const testIds = project.environments.flatMap(env => env.tests.map(test => test.id));
+      await ArchiveLib.deleteArchive({ ids: testIds });
       await project.destroy();
       return { success: true, message: 'Project deleted successfully' };
     } catch (e) {

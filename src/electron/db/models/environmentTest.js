@@ -35,7 +35,7 @@ export default (sequelize, DataTypes) => {
     return await sequelize.transaction(async (t) => {
       await Promise.all([
         models.environmentTestPage.destroy({ where: { environment_test_id: this.id }, transaction: t }),
-        models.testCaseEnvironmentTestPage.destroy({ where: { environment_test_id: this.id }, hooks: false, cascade: true, transaction: t })
+        models.testCaseEnvironmentTestPage.destroy({ where: { environment_test_id: this.id }, individualHooks: true, transaction: t })
       ]);
     });
   };

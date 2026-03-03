@@ -22,6 +22,7 @@ export const useSystemStore = create(set => ({
   removeTechnology: id => set(state => ({ technologies: state.technologies.filter(t => t.id !== id) })),
   setEnvironments: environments => set({ environments }),
   addEnvironment: environment => set(state => ({ environments: [...state.environments, environment] })),
+  updateEnvironment: (id, environment) => set(state => ({ environments: state.environments.map(r => (r.id === id ? environment : r)) })),
   removeEnvironment: id => set(state => ({ environments: state.environments.filter(t => t.id !== id) })),
   setCountries: countries => set({ countries }),
   setAuditTypes: auditTypes => set({ auditTypes }),

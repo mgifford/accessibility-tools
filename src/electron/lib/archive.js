@@ -33,7 +33,8 @@ class ArchiveLib {
       const EnvironmentTest = getModel('environmentTest'),
         EnvironmentPage = getModel('environmentPage'),
         TestCaseEnvironmentTestPage = getModel('testCaseEnvironmentTestPage'),
-        TestCaseEnvironmentTestPageTarget = getModel('testCaseEnvironmentTestPageTarget');
+        TestCaseEnvironmentTestPageTarget = getModel('testCaseEnvironmentTestPageTarget'),
+        TestPageTargetOccurrence = getModel('testPageTargetOccurrence');
 
       // get the test without test cases and nodes per page to avoid overloading the query
       const test = await EnvironmentTest.findByPk(data.id, {
@@ -54,70 +55,44 @@ class ArchiveLib {
       if (!test) {
         throw new Error('environment test not found');
       }
-      let output = test.toJSON();
-
-      // get test cases per page in chunks
-      const getTestCasesPageInChunks = async () => {
-        let allTestCases = [];
-        let offset = 0;
-        let shouldFetchMore = true;
-        while (shouldFetchMore) {
-          const testCases = await TestCaseEnvironmentTestPage.findAll({
-            where: { environment_test_id: data.id },
-            limit: CHUNK_SIZE,
-            offset: offset,
-            raw: true
-          });
-          if (testCases.length === 0) {
-            shouldFetchMore = false;
-          } else {
-            allTestCases = allTestCases.concat(testCases);
-            offset += CHUNK_SIZE;
-          }
-        }
-        return allTestCases;
-      };
-
-      // get test case targets in chunks
-      const getTestCaseTargetsInChunks = async (tcIds) => {
-        let allTargetData = [];
-
-        for (let i = 0; i < tcIds.length; i += CHUNK_SIZE) {
-          let tcIdsChunk = tcIds.slice(i, i + CHUNK_SIZE);
-          let targetOffset = 0;
-          let shouldFetchMoreChunk = true;
-
-          while (shouldFetchMoreChunk) {
-            const targets = await TestCaseEnvironmentTestPageTarget.findAll({
-              where: { test_case_page_id: tcIdsChunk },
-              limit: CHUNK_SIZE,
-              offset: targetOffset,
-              raw: true
-            });
-            if (targets.length === 0) {
-              shouldFetchMoreChunk = false;
-            } else {
-              allTargetData = allTargetData.concat(targets);
-              targetOffset += CHUNK_SIZE;
-            }
-          }
-        }
-
-        return allTargetData;
-      };
-
-      const testCases = await getTestCasesPageInChunks();
-      const targets = await getTestCaseTargetsInChunks(testCases.map(tc => tc.id));
-
-      output.test_cases = testCases;
-      output.targets = targets;
 
       const archiveFolder = await SettingsLib.getArchiveTypeFolderPath(ARCHIVE_TYPES.TEST);
       const archiveFilePath = path.join(archiveFolder, `${test.id}.json`);
       if (fs.existsSync(archiveFilePath)) {
-        log.info(`environment test ${test.id} already archived`);
-        return;
+        throw new Error('environment test already archived');
       }
+
+      let output = test.toJSON();
+
+      const getDataInChunks = async (ids, fieldName, model, chunkSize = CHUNK_SIZE) => {
+        let data = [];
+        let offset = 0;
+        let shouldFetchMore = true;
+        while (shouldFetchMore) {
+          const items = await model.findAll({
+            where: { [fieldName]: ids },
+            limit: chunkSize,
+            offset: offset,
+            raw: true
+          });
+          if (items.length === 0) {
+            shouldFetchMore = false;
+          } else {
+            data = data.concat(items);
+            offset += chunkSize;
+          }
+        }
+        return data;
+      };
+
+      const testCases = await getDataInChunks(data.id, 'environment_test_id', TestCaseEnvironmentTestPage);
+      const targets = await getDataInChunks(testCases.map(tc => tc.id), 'test_case_page_id', TestCaseEnvironmentTestPageTarget);
+      const occurrences = await getDataInChunks(targets.map(tc => tc.id), 'page_target_id', TestPageTargetOccurrence);
+
+      output.test_cases = testCases;
+      output.targets = targets;
+      output.occurrences = occurrences;
+
       await test.destroyAssociations();
       fs.writeFileSync(archiveFilePath, JSON.stringify(output, null, 2));
       log.info(`environment test ${test.id} archived successfully`);
@@ -146,15 +121,15 @@ class ArchiveLib {
       const EnvironmentTest = getModel('environmentTest'),
         EnvironmentTestPage = getModel('environmentTestPage'),
         TestCaseEnvironmentTestPage = getModel('testCaseEnvironmentTestPage'),
-        TestCaseEnvironmentTestPageTarget = getModel('testCaseEnvironmentTestPageTarget');
+        TestCaseEnvironmentTestPageTarget = getModel('testCaseEnvironmentTestPageTarget'),
+        TestPageTargetOccurrence = getModel('testPageTargetOccurrence');
       const archiveFolder = await SettingsLib.getArchiveTypeFolderPath(ARCHIVE_TYPES.TEST);
       const archiveFilePath = path.join(archiveFolder, `${data.id}.json`);
       if (!fs.existsSync(archiveFilePath)) {
-        log.info(`environment test ${data.id} not archived`);
-        return;
+        throw new Error('Environment test not archived');
       }
       const testData = JSON.parse(fs.readFileSync(archiveFilePath));
-      const { structured_pages, random_pages, test_cases, targets, status } = testData;
+      const { structured_pages, random_pages, test_cases, targets, occurrences, status } = testData;
       await sequelize.transaction(async (t) => {
         const testObj = await EnvironmentTest.findByPk(data.id, { transaction: t });
         if (!testObj) {
@@ -169,7 +144,8 @@ class ArchiveLib {
         await Promise.all([
           EnvironmentTestPage.bulkCreate(pageDataToAdd, { transaction: t }),
           TestCaseEnvironmentTestPage.bulkCreate(test_cases, { transaction: t, hooks: false }),
-          TestCaseEnvironmentTestPageTarget.bulkCreate(targets, { transaction: t })
+          TestCaseEnvironmentTestPageTarget.bulkCreate(targets, { transaction: t }),
+          TestPageTargetOccurrence.bulkCreate(occurrences, { transaction: t })
         ]);
         await testObj.save({ transaction: t });
       });
@@ -178,6 +154,39 @@ class ArchiveLib {
     } catch (e) {
       log.error(`Error unarchiving environment test ${data.id}`);
       log.debug(e);
+    }
+  }
+
+  /**
+   * Deletes archives by their ids.
+   * @param {Object} input
+   * @param {string[]} input.ids - The ids of the archive files
+   * @param {string} [input.type] - The type of the archive
+   * @param {{}} opt
+   */
+  static async deleteArchive(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        ids: Joi.array().items(Joi.string()).required(),
+        type: Joi.enum(Object.keys(ARCHIVE_TYPES)).optional().default(ARCHIVE_TYPES.TEST)
+      })
+    );
+    const data = await joiLib.validate(schema, input);
+    try {
+      const archiveFolder = await SettingsLib.getArchiveTypeFolderPath(data.type);
+      const promises = [];
+      for (const id of data.ids) {
+        const filePath = path.join(archiveFolder, `${id}.json`);
+        if (fs.existsSync(filePath)) {
+          promises.push(fs.unlinkSync(filePath));
+        }
+      }
+      await Promise.all(promises);
+      log.info(`${promises.length} archives deleted successfully`);
+      return { success: true, message: `${promises.length} archives deleted successfully` };
+    } catch (e) {
+      log.error('Error deleting archives: ', e);
+      return { success: false, message: 'Error deleting archives' };
     }
   }
 }

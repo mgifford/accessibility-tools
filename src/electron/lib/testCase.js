@@ -190,6 +190,72 @@ class TestCaseLib {
           [Op.in]: data.system_standards
         };
       }
+      if (data.system_standard_versions && data.system_standard_versions.length > 0) {
+        const testCase = await TestCase.findAll({
+          include: {
+            model: getModel('systemStandardCriteria'),
+            as: 'criteria',
+            required: true,
+            include: {
+              model: getModel('systemStandardVersion'),
+              as: 'version',
+              where: {
+                id: data.system_standard_versions
+              },
+              required: true
+            }
+          }
+        });
+        const testCaseIds = testCase.map(tc => tc.id);
+        if (!where[Op.or]) {
+          where[Op.or] = [];
+        }
+        where[Op.or].push({ id: testCaseIds });
+      }
+      if (data.system_standard_principles && data.system_standard_principles.length > 0) {
+        const testCase = await TestCase.findAll({
+          include: {
+            model: getModel('systemStandardCriteria'),
+            as: 'criteria',
+            required: true,
+            include: {
+              model: getModel('systemStandardPrinciple'),
+              as: 'principle',
+              where: {
+                id: data.system_standard_principles
+              },
+              required: true
+            }
+          }
+        });
+        const testCaseIds = testCase.map(tc => tc.id);
+        if (!where[Op.or]) {
+          where[Op.or] = [];
+        }
+        where[Op.or].push({ id: testCaseIds });
+      }
+      if (data.system_standard_guidelines && data.system_standard_guidelines.length > 0) {
+        const testCase = await TestCase.findAll({
+          include: {
+            model: getModel('systemStandardCriteria'),
+            as: 'criteria',
+            required: true,
+            include: {
+              model: getModel('systemStandardGuideline'),
+              as: 'guideline',
+              where: {
+                id: data.system_standard_guidelines
+              },
+              required: true
+            }
+          }
+        });
+        const testCaseIds = testCase.map(tc => tc.id);
+        if (!where[Op.or]) {
+          where[Op.or] = [];
+        }
+        where[Op.or].push({ id: testCaseIds });
+      }
       if (data.system_standard_criteria && data.system_standard_criteria.length > 0) {
         const testCase = await TestCase.findAll({
           include: {
@@ -325,15 +391,11 @@ class TestCaseLib {
         });
       }
 
-      const qry = CoreLib.paginateQuery(
-        {
-          where,
-          include,
-          order
-        },
-        data,
-        opt
-      );
+      const qry = CoreLib.paginateQuery({
+        where,
+        include,
+        order
+      }, data, opt);
       let paginatedResults;
       if (opt.count) {
         const res = await TestCase.findAndCountAll({ ...qry, distinct: true });

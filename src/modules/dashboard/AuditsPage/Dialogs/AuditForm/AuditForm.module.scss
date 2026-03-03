@@ -15,8 +15,9 @@
   svg {
     color: $palette-primary-main;
     fill: transparent;
-    position:relative;
+    position: relative;
     font-size: 16px;
+    margin-bottom: 1px;
 
     @media (prefers-color-scheme: dark) {
       color: $palette-dark-tertiary-text;
@@ -45,7 +46,7 @@
   .textField {
     border-radius: 8px;
     margin-bottom: 0;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
 
     :global(.MuiInputLabel-root) {
       top: -20px;
@@ -129,17 +130,6 @@
     padding: 0;
     border-bottom: none;
 
-    p {
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 20px;
-      color: $palette-primary-text;
-
-      @media (prefers-color-scheme: dark) {
-        color: $palette-dark-primary-text;
-      }
-    }
-
     &.dialogHeaderEdit {
       .icon {
         border: none;
@@ -171,7 +161,7 @@
 
     svg {
       margin-left: 8px;
-      fill:$palette-button-main;
+      fill: $palette-button-main;
       stroke: $palette-button-main;
       path {
         fill: $palette-button-main;
@@ -262,8 +252,19 @@
 
 .stepOne,
 .stepTwo,
-.stepThree{
+.stepThree,
+.stepFour {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 1.5rem;
+  }
+
+  .select {
+    margin-top: 1.5rem;
+  }
 }

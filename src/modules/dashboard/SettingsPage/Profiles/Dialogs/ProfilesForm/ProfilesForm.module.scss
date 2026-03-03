@@ -122,6 +122,11 @@
         color: $palette-dark-primary-text-2;
       }
 
+      p {
+        font-weight: 500;
+        display: inline-block;
+      }
+
       &:global(.Mui-error) {
         color: $palette-dark-error-main;
       }
@@ -198,21 +203,6 @@
     padding: 0;
     border-bottom: none;
 
-    p {
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 20px;
-      color: $palette-primary-text;
-
-      @media (prefers-color-scheme: dark) {
-        color: $palette-dark-primary-text;
-      }
-    }
-
-    .icon {
-      //border: 2px solid $palette-primary-icon;
-    }
-
     &.dialogHeaderEdit {
       .icon {
         border: none;
@@ -232,7 +222,7 @@
 
 .stepTwo {
   margin-top: 16px;
-  display:flex;
+  display: flex;
   flex-direction: column;
   gap: 16px;
 }

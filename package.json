@@ -2,7 +2,7 @@
   "name": "a11y",
   "productName": "Accessibility Tools",
   "description": "Accessibility Dev Tools",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "Clym Inc",
     "url": "https://clym.io/",
@@ -44,7 +44,9 @@
     "electron:dev": "npm-run-all --parallel electron:build_watch electron:watch",
     "electron:watch": "cross-env NODE_ENV='development' npx electronmon . --trace-deprecation",
     "lint": "eslint -c ./.eslintrc.js ./src --fix",
-    "electron:rebuild": "npx electron-rebuild"
+    "electron:rebuild": "npx electron-rebuild",
+    "cleanup": "rimraf dist && rimraf build && rimraf .next",
+    "cleanup:full": "rimraf dist && rimraf build && rimraf .next && rimraf node_modules"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",

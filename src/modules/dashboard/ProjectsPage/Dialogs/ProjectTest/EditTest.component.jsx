@@ -1,12 +1,12 @@
+import { edit3 } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon/Icon.component';
 import StepOne from '@/modules/dashboard/ProjectsPage/Dialogs/ProjectTest/StepOne.component';
+import { useSnackbarStore } from '@/stores';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
 import { useEffect, useState } from 'react';
 import styles from './ProjectTest.module.scss';
-import { useSnackbarStore } from '@/stores';
-
-import { circlePlus, edit3 } from '@/assets/icons';
+import StepTwo from './StepTwo.component';
 
 export default function EditTest({ open, onClose, testId, project, onTestUpdated }) {
   const {
@@ -89,6 +89,11 @@ export default function EditTest({ open, onClose, testId, project, onTestUpdated
       setIsSubmitting(false);
       return;
     }
+    if (step < steps.length) {
+      setStep(step + 1);
+      setIsSubmitting(false);
+      return;
+    }
 
     const requestData = {
       id: test.id,
@@ -112,11 +117,18 @@ export default function EditTest({ open, onClose, testId, project, onTestUpdated
     }
   };
 
+  const steps = [
+    { label: 'Step 1', component: <StepOne environments={environments} isEdit={true} /> },
+    { label: 'Step 2', component: <StepTwo /> }
+  ];
+
   return (
     <>
       <Dialog
         open={open}
         onClose={onClose}
+        steps={steps}
+        currentStep={step - 1}
         title='Edit test'
         titleIcon={<Icon icon={edit3} className={styles.edit} showShadow={true} />}
         dialogHeaderClassName={styles.dialogHeader}
@@ -125,8 +137,7 @@ export default function EditTest({ open, onClose, testId, project, onTestUpdated
         dialogContainerClassName={styles.dialogContainer}
         onSubmit={handleSubmit}
         actionsConfig={{
-          nextLabel: 'Save',
-          backLabel: 'Cancel',
+          nextLabel: step === 1 ? 'Next' : 'Save',
           isSubmitting,
           onBack: handleBack
         }}
@@ -148,9 +159,7 @@ export default function EditTest({ open, onClose, testId, project, onTestUpdated
             padding: 0
           }
         }}
-      >
-        <StepOne environments={environments} isEdit={true} />
-      </Dialog>
+      />
     </>
   );
 }

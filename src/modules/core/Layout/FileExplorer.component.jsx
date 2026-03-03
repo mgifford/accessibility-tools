@@ -1,66 +1,42 @@
 'use strict';
-import { pictureAsPdf } from '@/assets/icons';
+import { info, pictureAsPdf } from '@/assets/icons';
 import { FILE_EXPLORER_DEFAULT_WIDTH, FILE_EXPLORER_MAX_WIDTH_PERCENTAGE, FILE_EXPLORER_MIN_WIDTH, HEADER_HEIGHT } from '@/constants/app';
 import Icon from '@/modules/core/Icon';
 import LinearProgress from '@/modules/core/LinearProgress/LinearProgress.component';
+import Select from '@/modules/core/Select';
 import Overview from '@/modules/dashboard/ProjectPage/ProjectTestStats/Overview';
 import { useAuditStore, useProjectStore, useTerminalStore, useUiStore } from '@/stores';
-import { Box, Button, Chip, IconButton, Menu, MenuItem, Typography } from '@mui/material';
+import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import classNames from 'classnames';
 import { useEffect, useRef, useState } from 'react';
 import Principles from '../../dashboard/ProjectPage/ProjectTestStats/Principles/Principles.component';
 import Accordion from '../Accordion';
 import ResizableBlock from '../ResizableBlock';
-import Sitemap from '../Sitemap';
 import style from './FileExplorer.module.scss';
+import SitemapList from '../SitemapList';
 
 function TestSelector({ tests }) {
-  if (tests.length === 1) {
-    return <Chip variant='outlined' label={tests[0].name} className={style.chip} />;
-  }
   const { selectedTest, setSelectedTest } = useProjectStore();
 
-  const [anchorEl, setAnchorEl] = useState(null);
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-    setAnchorEl(e.currentTarget);
-  };
-  const handleClose = (e) => {
-    e.stopPropagation();
-    setAnchorEl(null);
-  };
-  const handleEnvironmentClick = (e, env) => {
-    e.stopPropagation();
-    setSelectedTest(env);
-    handleClose(e);
+  const handleEnvironmentClick = (env) => {
+    setSelectedTest(tests.find(t => t.id === env));
   };
 
-  const open = Boolean(anchorEl);
-  const id = open ? 'environment-select-popover' : undefined;
+  const options = tests.map(item => ({ value: item.id, label: item.name }));
 
   return (
-    <>
-      <Chip aria-describedby={id} variant='outlined' label={selectedTest.name} className={style.chip} onClick={handleClick} />
-      <Menu
-        id={id}
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left'
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {tests.map((env, i) => (
-          <MenuItem disabled={selectedTest.id === env.id} dense key={i} onClick={e => handleEnvironmentClick(e, env)}>
-            <Typography>{env.name}</Typography>
-          </MenuItem>
-        ))}
-      </Menu>
-    </>
+    <Select
+      value={selectedTest.id}
+      onChange={handleEnvironmentClick}
+      options={options}
+      label='Select test:'
+      disabled={false}
+      isLabelHorizontal
+      className={style.testsSelect}
+      labelClassName={style.selectLabel}
+      selectClassName={style.testsSelector}
+    />
   );
 }
 
@@ -279,19 +255,11 @@ export default function FileExplorer({ id }) {
         {!isAuditPage
           ? (
             <>
-              <Accordion
-                title={project.name}
-                rightElement={<TestSelector tests={tests} />}
-                hideRightLabel
-                expanded
-                className={classNames(style.accordion, style.overflowedAccordion)}
-                detailsClassName={style.accordionDetails}
-                sx={{
-                  '& .MuiCollapse-root': {
-                    overflow: 'hidden'
-                  }
-                }}
-              >
+              <Box className={style.projectDetails}>
+                <Box className={style.projectTitleContainer}>
+                  <Typography className={style.projectName}>{project.name}</Typography>
+                  <TestSelector tests={tests} />
+                </Box>
                 <Accordion
                   title='Site Map'
                   hideRightLabel
@@ -300,10 +268,11 @@ export default function FileExplorer({ id }) {
                   isChildAccordion
                   className={classNames(style.accordion, style.childAccordion)}
                   detailsClassName={style.accordionDetails}
+                  summaryTitleClassName={style.accordionSummaryTitle}
                 >
-                  <Sitemap sitemap={sitemap} />
+                  <SitemapList sitemap={sitemap} />
                 </Accordion>
-              </Accordion>
+              </Box>
               {testStats && (
                 <Accordion
                   titleComponent={(
@@ -312,19 +281,25 @@ export default function FileExplorer({ id }) {
                         <Tooltip title={selectedTest.name} placement='top'>
                           <Typography className={style.name}>{selectedTest.name}</Typography>
                         </Tooltip>
-                        <Typography className={style.counter}>
-                          {testStats.completed?.toLocaleString()} / {testStats.total?.toLocaleString()}
-                        </Typography>
+                        <Stack direction='row' alignItems='center' gap='4px'>
+                          <Typography className={style.counter}>
+                            {testStats.completed?.toLocaleString()} / {testStats.total?.toLocaleString()}
+                          </Typography>
+                          <Tooltip title='Completed tests (Passed/Failed), out of total tests'>
+                            <span className={style.infoIcon}>
+                              <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={info} />
+                            </span>
+                          </Tooltip>
+                        </Stack>
                       </Box>
+                      {testStats.totalPages && <Typography className={style.description}>{testStats.totalPages} selected pages in test</Typography>}{' '}
                       <LinearProgress variant='determinate' className={style.progressBar} current={testStats.completed} total={testStats.total} />
                       <Box className={style.caption}>
-                        {testStats.totalPages && <Typography className={style.description}>for the {testStats.totalPages} selected pages in test</Typography>}
                         <Tooltip title={!isAutomatedTestFinished ? 'PDF report will be available when the test is complete' : 'Download PDF report'} arrow>
-                          <span>
-                            <IconButton name='download pdf' aria-label='download pdf' onClick={handleDownload} disabled={isDownloadLoading || !isAutomatedTestFinished}>
-                              <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={pictureAsPdf} />
-                            </IconButton>
-                          </span>
+                          <Button variant='text' aria-label='download report' onClick={handleDownload} disabled={isDownloadLoading || !isAutomatedTestFinished}>
+                            <Typography>Download report</Typography>
+                            <Icon className={classNames('clym-contrast-exclude', style.icon)} icon={pictureAsPdf} />
+                          </Button>
                         </Tooltip>
                       </Box>
                     </Box>
@@ -333,8 +308,9 @@ export default function FileExplorer({ id }) {
                   className={classNames(style.accordion, style.progressAccordion)}
                   summaryClassName={style.progressAccordionSummary}
                   detailsClassName={style.progressAccordionDetails}
+                  expanded
                 >
-                  <Box>
+                  <Box maxHeight={300} overflow='auto'>
                     <Box className={style.tabs}>
                       {PROGRESS_TABS.map((tab, i) => (
                         <Button variant='outlined' onClick={() => setSelectedTab(i)} key={i} className={classNames(style.tabButton, { [style.active]: i === selectedTab })}>

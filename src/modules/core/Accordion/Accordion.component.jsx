@@ -30,6 +30,7 @@ export default function CoreAccordion({
   onClick,
   className,
   summaryClassName,
+  summaryTitleClassName,
   summaryRef,
   detailsClassName,
   children,
@@ -70,8 +71,8 @@ export default function CoreAccordion({
         onClick={disableSummaryClick ? e => e.stopPropagation() : undefined}
       >
         {titleComponent || (
-          <div className={styles.summaryTitle}>
-            <Typography variant='body1' component='div' fontWeight={600}>
+          <div className={classNames(styles.summaryTitle, summaryTitleClassName)}>
+            <Typography variant='body1' fontWeight={600}>
               {bullet && <BulletCell className={styles.bullet} color={bullet} />}
               {title}
             </Typography>

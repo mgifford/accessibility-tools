@@ -20,6 +20,7 @@ import MuiTab from './MuiTab';
 import MuiAccordion from './MuiAccordion';
 import MuiSnackbar from './MuiSnackbar';
 import MuiAutocomplete from './MuiAutocomplete';
+import MuiTooltip from '@/modules/core/theme/MuiTooltip';
 
 export function themeOverrides(palette) {
   return buildOverrides([
@@ -43,7 +44,8 @@ export function themeOverrides(palette) {
     MuiAccordion,
     MuiDialog,
     MuiTable,
-    MuiAutocomplete
+    MuiAutocomplete,
+    MuiTooltip
   ], palette);
 }
 

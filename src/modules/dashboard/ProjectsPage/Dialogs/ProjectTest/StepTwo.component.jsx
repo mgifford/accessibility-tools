@@ -1,34 +1,64 @@
 import { info } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
-import { Typography } from '@mui/material';
-import Tooltip from '@mui/material/Tooltip';
+import { TextField, Tooltip, Typography } from '@mui/material';
 import classNames from 'classnames';
 import styles from './ProjectTest.module.scss';
-import SitemapForm from './SitemapForm';
 
-const StepTwo = ({ saveBtnRef }) => {
-  const { structuredPages, addStructuredPage, removeStructuredPage, handleChange } = useProjectTestFormStore();
-
-  const onSiteMapUpdate = async (newPageValue, index) => {
-    const updatedStructuredPages = [...structuredPages];
-    updatedStructuredPages[index] = newPageValue || { id: '', label: '' };
-    handleChange('structuredPages', updatedStructuredPages);
-  };
-
+const StepTwo = () => {
+  const { essentialFunctionality, webPageTypes, handleChange, handleBlur } = useProjectTestFormStore();
   return (
-    <div className={styles.stepTwo}>
-      <Typography variant='body1' className={styles.stepHeader}>
-        Structured sample web pages
-        <Tooltip title='Select web pages that reflect all identified (1) common web pages, (2) essential functionality, (3) types of web pages, (4) web technologies relied upon, and (5) other relevant web pages. For more information, see WCAG-EM Step 3.a: Include a Structured Sample. Note: ‘Web pages’ include different ‘web page states’; see definition of web page states.'>
-          <span className={styles.infoIcon}>
-            <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
-          </span>
-        </Tooltip>
+    <>
+      <Typography variant='body1' sx={{ mt: 2, fontWeight: 700 }}>
+        Notes
       </Typography>
-      <SitemapForm pagesType='structured' onSiteMapUpdate={onSiteMapUpdate} addPage={addStructuredPage} removePage={removeStructuredPage} saveBtnRef={saveBtnRef} />
-    </div>
+      <div className={styles.formField}>
+        <TextField
+          label={(
+            <div>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '20px', top: '-20px' }}>
+                Essential functionality of the website
+                <Tooltip title="Provide a brief description of the website's core functionalities.">
+                  <span className={styles.infoIcon}>
+                    <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
+                  </span>
+                </Tooltip>
+              </span>
+            </div>
+          )}
+          value={essentialFunctionality}
+          onChange={e => handleChange('essentialFunctionality', e.target.value)}
+          onBlur={e => handleBlur('essentialFunctionality', e.target.value)}
+          fullWidth
+          margin='normal'
+          multiline
+          rows={4}
+          className={styles.textField}
+        />
+      </div>
+      <div className={styles.formField}>
+        <TextField
+          label={(
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '20px', top: '-20px' }}>
+              Variety of web page types
+              <Tooltip title='Provide a brief description of the variety of page types.'>
+                <span className={styles.infoIcon}>
+                  <Icon className={classNames('clym-contrast-exclude', styles.icon)} icon={info} />
+                </span>
+              </Tooltip>
+            </span>
+          )}
+          value={webPageTypes}
+          onChange={e => handleChange('webPageTypes', e.target.value)}
+          onBlur={e => handleBlur('webPageTypes', e.target.value)}
+          fullWidth
+          margin='normal'
+          multiline
+          rows={4}
+          className={styles.textField}
+        />
+      </div>
+    </>
   );
 };
-
 export default StepTwo;

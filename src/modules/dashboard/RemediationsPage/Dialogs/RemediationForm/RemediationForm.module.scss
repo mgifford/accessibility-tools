@@ -15,8 +15,9 @@
   svg {
     color: $palette-primary-main;
     fill: transparent;
-    position:relative;
+    position: relative;
     font-size: 16px;
+    margin-bottom: 1px;
 
     @media (prefers-color-scheme: dark) {
       color: $palette-dark-tertiary-text;
@@ -174,6 +175,11 @@
         color: $palette-dark-primary-text-2;
       }
 
+      p {
+        font-weight: 500;
+        display: inline-block;
+      }
+
       &:global(.Mui-error) {
         color: $palette-dark-error-main;
       }
@@ -290,21 +296,6 @@
     padding: 0;
     border-bottom: none;
 
-    p {
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 20px;
-      color: $palette-primary-text;
-
-      @media (prefers-color-scheme: dark) {
-        color: $palette-dark-primary-text;
-      }
-    }
-
-    .icon {
-      //border: 2px solid $palette-primary-icon;
-    }
-
     &.dialogHeaderEdit {
       .icon {
         border: none;
@@ -325,7 +316,7 @@
   width: 100%;
   border-radius: 8px;
   border: 1px solid $palette-secondary-main;
-  margin-top: .4rem;
+  margin-top: 0.4rem;
 
   @media (prefers-color-scheme: dark) {
     background-color: $palette-dark-background-2;

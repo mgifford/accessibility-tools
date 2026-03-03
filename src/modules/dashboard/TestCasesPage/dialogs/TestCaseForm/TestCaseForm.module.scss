@@ -17,6 +17,7 @@
     fill: transparent;
     position: relative;
     font-size: 16px;
+    margin-bottom: 1px;
 
     @media (prefers-color-scheme: dark) {
       color: $palette-dark-tertiary-text;
@@ -189,6 +190,11 @@
       &:not(:global(.Mui-error)) {
         color: $palette-primary-main-3;
       }
+
+      p {
+        font-weight: 500;
+        display: inline-block;
+      }
     }
 
     :global(.MuiTypography-root) {
@@ -292,17 +298,6 @@
     text-align: center;
     padding: 0;
     border-bottom: none;
-
-    p {
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 20px;
-      color: $palette-primary-text;
-
-      @media (prefers-color-scheme: dark) {
-        color: $palette-dark-primary-text;
-      }
-    }
 
     &.dialogHeaderEdit {
       .icon {

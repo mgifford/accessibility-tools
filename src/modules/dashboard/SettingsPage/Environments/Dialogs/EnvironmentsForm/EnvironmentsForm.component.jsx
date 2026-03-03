@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react';
+import { circlePlus, edit3 } from '@/assets/icons';
 import Dialog from '@/modules/core/Dialog';
 import Icon from '@/modules/core/Icon';
-import styles from './EnvironmentsForm.module.scss';
-import classNames from 'classnames';
-import { useSnackbarStore } from '@/stores';
+import { useSnackbarStore, useSystemStore } from '@/stores';
 import { TextField } from '@mui/material';
-import { circlePlus, edit3 } from '@/assets/icons';
+import classNames from 'classnames';
+import { useEffect, useState } from 'react';
+import styles from './EnvironmentsForm.module.scss';
 
 export default function EnvironmentsForm({ open, onClose, onEnvironmentAdded, environmentId }) {
-  const {
-    openSnackbar
-  } = useSnackbarStore();
+  const { openSnackbar } = useSnackbarStore();
+  const { addEnvironment, updateEnvironment } = useSystemStore();
 
   const [environmentName, setEnvironmentName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,9 +67,11 @@ export default function EnvironmentsForm({ open, onClose, onEnvironmentAdded, en
 
     try {
       if (environmentId) {
-        await window.api.systemEnvironment.update({ id: environmentId, name: environmentName });
+        const env = await window.api.systemEnvironment.update({ id: environmentId, name: environmentName });
+        updateEnvironment(environmentId, env);
       } else {
-        await window.api.systemEnvironment.create({ name: environmentName });
+        const env = await window.api.systemEnvironment.create({ name: environmentName });
+        addEnvironment(env);
       }
       openSnackbar({ message: 'Environment saved successfully', severity: 'success' });
       onEnvironmentAdded();
@@ -88,9 +89,7 @@ export default function EnvironmentsForm({ open, onClose, onEnvironmentAdded, en
         open={open}
         onClose={onClose}
         title={environmentId ? 'Edit environment' : 'Add environment'}
-        titleIcon={environmentId
-          ? <Icon icon={edit3} className={styles.edit} showShadow={true} />
-          : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
+        titleIcon={environmentId ? <Icon icon={edit3} className={styles.edit} showShadow={true} /> : <Icon icon={circlePlus} className={styles.icon} showShadow={true} />}
         dialogHeaderClassName={classNames(styles.dialogHeader, { [styles.dialogHeaderEdit]: environmentId })}
         dialogContentClassName={styles.dialogContent}
         dialogActionsClassName={styles.dialogActions}
