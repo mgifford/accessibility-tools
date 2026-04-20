@@ -77,23 +77,12 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
   useEffect(() => {
     const webview = ref.current;
     if (!webview) return;
-    const handleWillNavigate = (e) => {
-      webview.stop();
-      console.log('Navigation attempt blocked to:', e.url);
-    };
-    const handleNewWindow = (e) => {
-      e.preventDefault();
-      webview.stop();
-      console.log('New window attempt blocked for:', e.url);
-    };
     const handleDomReady = async () => {
       if (!webview) return;
       setIsDomReady(true);
       setOpenDevTools(() => {
         webview.openDevTools({ mode: 'detach', activate: true });
       });
-      webview.addEventListener('will-navigate', handleWillNavigate);
-      webview.addEventListener('new-window', handleNewWindow);
       if (captureScreenshot && projectId) {
         screenshotCaptureHandler(webview);
       }
@@ -104,8 +93,6 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
     return () => {
       if (webview) {
         webview.removeEventListener('dom-ready', handleDomReady);
-        webview.removeEventListener('will-navigate', handleWillNavigate);
-        webview.removeEventListener('new-window', handleNewWindow);
         webview.removeEventListener('did-start-loading', loadstart);
         webview.removeEventListener('did-stop-loading', loadstop);
         reset();
@@ -171,9 +158,10 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
   return (
     <>
       <span style={visuallyHidden} id='webview-instructions'>
-        Press Escape to exit the page. Press Shift + Escape to move to the previous field.
+        Press Escape to move focus out of the page. Press Shift + Escape to move to the previous field.
       </span>
       <webview
+        allowpopups='true'
         disablewebsecurity='true'
         className={style.root}
         ref={ref}

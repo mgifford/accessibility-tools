@@ -1,5 +1,4 @@
 import dns from 'dns/promises';
-import https from 'https';
 import Joi from 'joi';
 import { Op } from 'sequelize';
 import CoreLib from './core';
@@ -307,43 +306,6 @@ class EnvironmentLib {
   }
 
   /**
-   * Performs a url checkup on the provided URL.
-   * @param {Object} input
-   * @param {string} input.url - The URL to perform checkup on.
-   * @param {{}} [opt]
-   * @returns - an object containing a success key set to true if successful, or false if failed and an error message.
-   */
-  static async urlExists(input = {}, opt = {}) {
-    const schema = joiLib.schema(() =>
-      Joi.object({
-        url: Joi.string().required()
-      })
-    );
-    const data = await joiLib.validate(schema, input);
-    try {
-      return new Promise((resolve, reject) => {
-        const url = new URL(formatDomain(data.url));
-
-        const options = {
-          method: 'HEAD',
-          hostname: url.hostname,
-          path: url.pathname + url.search,
-          port: url.port || 443
-        };
-
-        const req = https.request(options, (res) => {
-          resolve({ success: res.statusCode < 400 });
-        });
-        req.on('error', reject);
-        req.end();
-      });
-    } catch (e) {
-      console.log(`URL check failed for ${data.url}`);
-      return { success: false, error: e.message };
-    }
-  }
-
-  /**
    * Retrieves the sitemap for a specific environment.
    * @param {Object} input
    * @param {string} input.environment_id - The ID of the environment to retrieve the sitemap for.
@@ -397,34 +359,14 @@ class EnvironmentLib {
       if (!environment) {
         throw new Error('Environment not found');
       }
-      const envDomain = environment.url.replace(/^(https?:\/\/)/, '').replace(/^www\./, '');
-      const newDomain = data.url.replace(/^(https?:\/\/)/, '').replace(/^www\./, '');
-      if (!newDomain.includes(envDomain)) {
-        throw new Error('URL must be in the same domain as the environment URL');
-      }
-      const urlObj = new URL(data.url);
-      const pathname = urlObj.pathname.split('/').filter(Boolean).join('/');
-      const envPageObj = await EnvironmentPage.findOne({
-        where: {
-          path: pathname
-        }
-      });
-      if (envPageObj) {
-        throw new Error('Page already exists');
-      }
-      const { success } = await this.urlExists({ url: data.url });
-      if (!success) {
-        throw new Error('DNS lookup failed');
-      }
-      const pageId = await EnvironmentPageLib.updateSitemap({
+      const page = await EnvironmentPageLib.createPage({
         environment_id: environment.id,
-        sitemap: [data.url]
+        url: data.url
       });
-      const envPage = await EnvironmentPage.findByPk(pageId);
-      if (!envPage) {
+      if (!page) {
         throw new Error('Something went wrong.');
       }
-      return envPage.toJSON();
+      return page;
     } catch (e) {
       console.log('Error creating environment page: ', e);
       throw new Error(e.message || 'An unknown error occurred while creating the environment page.');

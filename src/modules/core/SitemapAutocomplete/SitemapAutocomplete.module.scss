@@ -5,7 +5,6 @@
   color: $palette-primary-main-3;
   border-radius: 8px;
 
-
   :global(.MuiInputBase-root) {
     &:global(.Mui-disabled) {
       background-color: $palette-primary-disabled;
@@ -94,11 +93,16 @@
   @media (prefers-color-scheme: dark) {
     &:global(.MuiPaper-root) {
       border-color: $palette-dark-border !important;
-      background-color:$palette-dark-background-2;
+      background-color: $palette-dark-background-2;
       color: $palette-dark-primary-text-2;
       --Paper-overlay: none !important;
       --Paper-shadow: none !important;
     }
+  }
+
+  .progressSpinner {
+    position: relative;
+    left: -5px;
   }
 }
 .addPageButton {
@@ -163,7 +167,7 @@
 
 .errorMessage {
   color: $palette-error-main;
-  padding-top: .5rem;
+  padding-top: 0.5rem;
   display: block;
 }
 

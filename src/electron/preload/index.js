@@ -164,11 +164,16 @@ const system = {
   getAssetsPath: () => ipcRenderer.invoke('system:getAssetsPath'),
   getWebviewPreloadPath: () => path.join(__dirname, 'webview.js'),
   log: {
+    info: message => ipcRenderer.send('log:info', message),
     error: message => ipcRenderer.send('log:error', message),
     rejection: message => ipcRenderer.send('log:rejection', message)
   },
   showError: (message, opt) => ipcRenderer.send('system:error', message, opt)
 };
+
+ipcRenderer.on('log:info', (_, message) => {
+  log.info(message);
+});
 
 ipcRenderer.on('log:error', (_, error) => {
   log.error('Error from Renderer');

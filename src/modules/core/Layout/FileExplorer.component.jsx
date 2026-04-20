@@ -5,7 +5,7 @@ import Icon from '@/modules/core/Icon';
 import LinearProgress from '@/modules/core/LinearProgress/LinearProgress.component';
 import Select from '@/modules/core/Select';
 import Overview from '@/modules/dashboard/ProjectPage/ProjectTestStats/Overview';
-import { useAuditStore, useProjectStore, useTerminalStore, useUiStore } from '@/stores';
+import { useAuditStore, useProjectStore, useSnackbarStore, useTerminalStore, useUiStore } from '@/stores';
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import classNames from 'classnames';
@@ -13,8 +13,8 @@ import { useEffect, useRef, useState } from 'react';
 import Principles from '../../dashboard/ProjectPage/ProjectTestStats/Principles/Principles.component';
 import Accordion from '../Accordion';
 import ResizableBlock from '../ResizableBlock';
-import style from './FileExplorer.module.scss';
 import SitemapList from '../SitemapList';
+import style from './FileExplorer.module.scss';
 
 function TestSelector({ tests }) {
   const { selectedTest, setSelectedTest } = useProjectStore();
@@ -161,6 +161,7 @@ const renderAuditMode = () => {
 
 export default function FileExplorer({ id }) {
   const isAuditPage = typeof window !== 'undefined' && window.location.pathname.includes('/audit');
+  const { openSnackbar } = useSnackbarStore();
   const { project, tests, selectedTest, setSelectedPage, testStats } = useProjectStore();
   const { audit, selectedCriterion, setSelectedCriterion } = useAuditStore();
   const { filter, setFilter, fetchData, setPageId, setTestId, setIsAudit, testsFilter, setTestsFilter, setHideTerminal, isAutomatedTestFinished } = useTerminalStore(state => ({
@@ -188,6 +189,7 @@ export default function FileExplorer({ id }) {
     setIsDownloadLoading(true);
     await window.api.environmentTest.generateReport({ id: selectedTest.id });
     setIsDownloadLoading(false);
+    openSnackbar({ message: 'Report generated', severity: 'success' });
   };
 
   useEffect(() => {

@@ -7,7 +7,7 @@ import sequelize, { bulkUpdateColumn, getModel } from './db';
 import EnvironmentLib from './environment';
 import EnvironmentTestLib from './environmentTest';
 import joiLib from './joi';
-import { fixTcTargets, formatDate, strToCase } from './utils';
+import { compareHostnames, fixTcTargets, formatDate, formatDomain, strToCase, urlExists } from './utils';
 
 class EnvironmentPageLib {
   /**
@@ -16,7 +16,6 @@ class EnvironmentPageLib {
    * @param {number} input.environment_id - The ID of the environment to update.
    * @param {Array<string>} input.sitemap - The sitemap tree, where each string is a full URL.
    * @param {{}} opt
-   * @returns {Promise<void>} Resolves when the update is complete.
    */
   static async updateSitemap(input = {}, opt = {}) {
     const schema = joiLib.schema(() =>
@@ -27,89 +26,146 @@ class EnvironmentPageLib {
     );
     const data = await joiLib.validate(schema, input);
     try {
+      for (const url of data.sitemap) {
+        try {
+          await this.createPage({
+            environment_id: data.environment_id,
+            url
+          }, {
+            skip_page_verification: true,
+            ...opt
+          });
+        } catch (e) {
+          console.log(`Error creating page for url ${url}: `, e);
+        }
+      }
+      console.log(`updated sitemap for environment ${data.environment_id}`);
+    } catch (e) {
+      console.log('Error updating environment page sitemap: ', e);
+      throw e;
+    }
+  }
+
+  /**
+ * Creates a new page within an environment.
+ * @param {Object} input
+ * @param {string} input.environment_id - The ID of the environment
+ * @param {string} input.url - The URL of the page
+ * @param {Object} opt
+ * @param {boolean} opt.skip_page_verification - if true, skips the check to see if page exists
+ * @returns - the created page object
+ */
+  static async createPage(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        environment_id: Joi.id().required(),
+        url: Joi.string().required()
+      })
+    );
+    const data = await joiLib.validate(schema, input);
+    try {
+      const skipPageVerification = opt.skip_page_verification || false;
+
+      if (!skipPageVerification) {
+        const exists = await urlExists(data.url);
+        if (!exists) {
+          console.log(`URL ${data.url} does not exist`);
+          throw new Error('Page lookup failed');
+        }
+      }
+
       const EnvironmentPage = getModel('environmentPage');
       const environment = await EnvironmentLib.read({ id: data.environment_id });
       if (!environment) throw new Error('Environment not found');
-      const url = environment.url;
-      let initDepth = 0,
-        paths = [];
+
+      const isCrossDomain = !compareHostnames(environment.url, data.url);
+      const parsedUrl = new URL(formatDomain(data.url));
+      const domain = isCrossDomain ? formatDomain(parsedUrl.hostname, true) : null;
+
+      let initDepth = 0;
       try {
-        paths = new URL(url).pathname.split('/').filter(Boolean);
-        initDepth = paths.length;
+        initDepth = new URL(environment.url).pathname.split('/').filter(Boolean).length;
       } catch {}
-      const sitemap = data.sitemap;
-      const pathToIdMap = new Map();
-      let currPageId = null;
 
-      // check any already added pages in the db
-      const currPages = await EnvironmentPage.findAll({ where: { environment_id: environment.id }, attributes: ['id', 'path'] });
-      for (let currPage of currPages) {
-        currPage = currPage.toJSON();
-        pathToIdMap.set(currPage.path, currPage.id);
-      }
-      const currPagePath = paths.length === initDepth ? '' : paths[paths.length - 1];
-      if (pathToIdMap.has(currPagePath)) {
-        currPageId = pathToIdMap.get(currPagePath);
-      }
+      const depth = isCrossDomain ? 0 : initDepth;
+      const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+      const fullPath = pathSegments.slice(depth).join('/');
+      const currPath = pathSegments.length === depth ? '' : pathSegments[pathSegments.length - 1];
+      const name = currPath ? createLabel(currPath) : isCrossDomain ? domain : 'Home';
 
-      await sequelize.transaction(async (t) => {
-        for (const url of sitemap) {
-          const parsedUrl = new URL(url);
-          const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
-          const fullPath = pathSegments.slice(initDepth).join('/');
-          const currPath = pathSegments.length === initDepth ? '' : pathSegments[pathSegments.length - 1];
-          const name = currPath ? createLabel(currPath) : 'Home';
+      return sequelize.transaction({ transaction: opt.transaction }, async (t) => {
+        const existing = await EnvironmentPage.findOne({
+          where: {
+            environment_id: environment.id,
+            path: fullPath,
+            domain
+          },
+          transaction: t
+        });
+        if (existing) return existing.toJSON();
 
-          // Skip if already processed
-          if (pathToIdMap.has(fullPath)) {
-            continue;
-          }
+        let parentId = null;
 
-          // Resolve parent ID for this path
-          let parentId = null;
-          for (let i = 0; i < pathSegments.length - 1; i++) {
-            const parentPath = pathSegments.slice(initDepth, i + 1).join('/');
-
-            if (parentPath) {
-              // these paths weren't created so they likely don't have a dedicated page
-              if (!pathToIdMap.has(parentPath)) {
-                const parentLabel = createLabel(pathSegments[i]);
-                const newParentPage = await EnvironmentPage.create(
-                  {
-                    environment_id: environment.id,
-                    name: parentLabel,
-                    path: parentPath,
-                    not_clickable: true,
-                    parent_id: parentId
-                  },
-                  { transaction: t }
-                );
-                pathToIdMap.set(parentPath, newParentPage.id);
-                parentId = newParentPage.id;
-              } else {
-                parentId = pathToIdMap.get(parentPath);
-              }
-            }
-          }
-
-          // Create the current page
-          const page = await EnvironmentPage.create(
-            {
+        if (isCrossDomain) {
+          const [rootPage] = await EnvironmentPage.findOrCreate({
+            where: {
               environment_id: environment.id,
-              name,
-              path: fullPath,
+              domain,
+              path: ''
+            },
+            defaults: {
+              name: domain,
+              not_clickable: false,
+              parent_id: null
+            },
+            transaction: t
+          });
+          parentId = rootPage.id;
+          // if no other paths need to be parsed, we create the root page and stop
+          if (!fullPath) return rootPage.toJSON();
+        }
+
+        for (let i = 0; i < pathSegments.length - 1; i++) {
+          // creates intermediate pages up to the current path
+          const parentPath = pathSegments.slice(depth, i + 1).join('/');
+          if (!parentPath) continue;
+
+          let notClickable = true;
+
+          if (!skipPageVerification) {
+            const existsRes = await urlExists(`${environment.url}/${parentPath}`);
+            notClickable = !existsRes.success;
+          }
+
+          const [intermediatePage] = await EnvironmentPage.findOrCreate({
+            where: {
+              environment_id: environment.id,
+              path: parentPath,
+              domain
+            },
+            defaults: {
+              name: createLabel(pathSegments[i]),
+              not_clickable: notClickable,
               parent_id: parentId
             },
-            { transaction: t }
-          );
-          pathToIdMap.set(fullPath, page.id);
-          currPageId = page.id;
+            transaction: t
+          });
+          parentId = intermediatePage.id;
         }
+
+        const page = await EnvironmentPage.create({
+          environment_id: environment.id,
+          name,
+          path: fullPath,
+          domain,
+          parent_id: parentId
+        }, { transaction: t });
+
+        return page.toJSON();
       });
-      console.log(`updated sitemap for ${environment.url}`);
-      return currPageId;
     } catch (e) {
-      console.log('Error updating environment page sitemap: ', e);
+      console.log('Error creating environment page: ', e);
+      throw e;
     }
   }
 

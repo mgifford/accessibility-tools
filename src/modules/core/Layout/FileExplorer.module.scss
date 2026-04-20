@@ -212,6 +212,9 @@
         border-radius: 0;
       }
       :disabled {
+        p {
+          color: $palette-primary-disabled !important;
+        }
         svg {
           color: $palette-primary-disabled;
         }

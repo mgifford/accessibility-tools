@@ -87,6 +87,14 @@ const createWindow = async () => {
     handleExternalLink(details.url);
     return { action: 'deny' };
   });
+
+  mainWindow.webContents.on('did-attach-webview', (_, webviewContents) => {
+    // open webview external links in the same window
+    webviewContents.setWindowOpenHandler(({ url }) => {
+      webviewContents.loadURL(url);
+      return { action: 'deny' };
+    });
+  });
   window = mainWindow;
   return mainWindow;
 };

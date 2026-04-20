@@ -15,6 +15,6 @@ export const useSnackbarStore = create(set => ({
     set({ ...initialState });
   },
   openSnackbar: ({ message = '', severity = 'error', variant = 'filled', autoHideDuration = 6000, anchorOrigin = { vertical: 'bottom', horizontal: 'center' } }) => {
-    set({ open: true, message: message, severity, variant, autoHideDuration });
+    set({ open: true, message: message, severity, variant, autoHideDuration, anchorOrigin });
   }
 }));

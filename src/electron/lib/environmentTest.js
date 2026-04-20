@@ -123,7 +123,7 @@ class EnvironmentTestLib {
         include.push({
           model: getModel('environmentPage'),
           as: 'structured_pages',
-          attributes: ['id', 'path', 'name'],
+          attributes: ['id', 'path', 'name', 'domain'],
           through: {
             attributes: []
           }
@@ -131,7 +131,7 @@ class EnvironmentTestLib {
         include.push({
           model: getModel('environmentPage'),
           as: 'random_pages',
-          attributes: ['id', 'path', 'name'],
+          attributes: ['id', 'path', 'name', 'domain'],
           through: {
             attributes: []
           }
@@ -171,7 +171,7 @@ class EnvironmentTestLib {
           {
             model: getModel('environmentPage'),
             as: 'structured_pages',
-            attributes: ['id', 'path', 'name', 'not_clickable'],
+            attributes: ['id', 'path', 'name', 'not_clickable', 'domain'],
             through: {
               attributes: []
             }
@@ -179,7 +179,7 @@ class EnvironmentTestLib {
           {
             model: getModel('environmentPage'),
             as: 'random_pages',
-            attributes: ['id', 'path', 'name', 'not_clickable'],
+            attributes: ['id', 'path', 'name', 'not_clickable', 'domain'],
             through: {
               attributes: []
             }
@@ -415,7 +415,7 @@ class EnvironmentTestLib {
           {
             model: getModel('environmentPage'),
             as: 'structured_pages',
-            attributes: ['id', 'path', 'name', 'parent_id', 'not_clickable'],
+            attributes: ['id', 'path', 'name', 'parent_id', 'not_clickable', 'domain'],
             through: {
               attributes: []
             }
@@ -423,7 +423,7 @@ class EnvironmentTestLib {
           {
             model: getModel('environmentPage'),
             as: 'random_pages',
-            attributes: ['id', 'path', 'name', 'parent_id', 'not_clickable'],
+            attributes: ['id', 'path', 'name', 'parent_id', 'not_clickable', 'domain'],
             through: {
               attributes: []
             }
@@ -527,7 +527,7 @@ class EnvironmentTestLib {
               {
                 model: getModel('environmentPage'),
                 as: 'environment_page',
-                attributes: ['id', 'name', 'path'],
+                attributes: ['id', 'name', 'path', 'domain'],
                 include: [
                   {
                     model: getModel('environment'),

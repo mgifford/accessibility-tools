@@ -16,6 +16,10 @@ export default (sequelize, DataTypes) => {
     not_clickable: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    domain: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   });
 

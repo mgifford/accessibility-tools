@@ -5,7 +5,7 @@ import AxeCoreLib from './axecore';
 import { getModel } from './db';
 import EnvironmentTestLib from './environmentTest';
 import LandmarkRunner from './landmarkRunner';
-import { timeoutFn } from './utils';
+import { formatDomain, timeoutFn } from './utils';
 
 class TestRunner {
   /**
@@ -80,7 +80,7 @@ class TestRunner {
       EnvironmentTestPage = getModel('environmentTestPage');
     try {
       const page = await EnvironmentPage.findByPk(pageId, {
-        attributes: ['id', 'path'],
+        attributes: ['id', 'path', 'domain'],
         include: [
           {
             model: getModel('environment'),
@@ -118,7 +118,8 @@ class TestRunner {
 
       return await new Promise((resolve, reject) => {
         this.currentPage = { id: page.id, tests: manualTestCases, resolve, reject };
-        const url = `${page.environment.url}/${page.path}`;
+        const domain = page.domain ? formatDomain(page.domain) : page.environment.url;
+        const url = `${domain}/${page.path}`;
         this.window.webContents.loadURL(url);
       });
     } catch (e) {

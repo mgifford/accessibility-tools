@@ -5,7 +5,7 @@ import { format } from 'date-fns';
  * @param {string} domain - the domain name to validate
  * @returns - true if the domain name is valid, false otherwise
  */
-export const isDomainValid = (domain) => {
+export const isDomainValid = (domain = '') => {
   const domainPattern = /^(https?:\/\/)?(localhost|(([\w-]+\.)+[\w-]+)|(\d{1,3}\.){3}\d{1,3})(:\d+)?(\/\S*)?$/i;
   return domainPattern.test(domain.trim());
 };
@@ -18,7 +18,7 @@ export const isDomainValid = (domain) => {
  * @param {boolean} [strip=false] - whether to strip the protocol and www prefix
  * @returns - the formatted domain name
  */
-export const formatDomain = (domain, strip = false) => {
+export const formatDomain = (domain = '', strip = false) => {
   if (strip) {
     return domain.replace(/^(https?:\/\/)?(www\.)?/, '');
   }
@@ -26,6 +26,58 @@ export const formatDomain = (domain, strip = false) => {
     return domain.startsWith('localhost') ? `http://${domain}` : `https://${domain}`;
   }
   return domain;
+};
+
+/**
+ * Compares two URLs to see if they have the same hostname.
+ * The URLs are first formatted to remove any protocol and www prefix.
+ * Then the hostname is extracted from the formatted URLs and compared.
+ * @param {string} url1 - the first URL to compare
+ * @param {string} url2 - the second URL to compare
+ * @returns - true if the hostnames are the same, false otherwise
+ */
+export const compareHostnames = (url1, url2) => {
+  try {
+    const normalizedUrl1 = formatDomain(formatDomain(url1, true));
+    const normalizedUrl2 = formatDomain(formatDomain(url2, true));
+    const hostname1 = new URL(normalizedUrl1).hostname;
+    const hostname2 = new URL(normalizedUrl2).hostname;
+    return hostname1 === hostname2;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+   * Performs a url checkup on the provided URL.
+   * @param {string} url - The URL to perform checkup on.
+   * @returns - an object containing a success key set to true if successful, or false if failed and an error message.
+   */
+export const urlExists = async (url = '') => {
+  try {
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(formatDomain(url));
+
+      const options = {
+        method: 'HEAD',
+        hostname: urlObj.hostname,
+        path: urlObj.pathname + urlObj.search,
+        port: urlObj.port || 443
+      };
+
+      const isHttps = urlObj.protocol === 'https:';
+      const transport = isHttps ? require('https') : require('http');
+
+      const req = transport.request(options, (res) => {
+        resolve({ success: res.statusCode < 400 });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+  } catch (e) {
+    console.log(`URL check failed for ${data.url}`);
+    return { success: false, error: e.message };
+  }
 };
 
 /**

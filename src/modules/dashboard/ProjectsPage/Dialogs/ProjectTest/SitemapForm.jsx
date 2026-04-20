@@ -1,42 +1,44 @@
 import { plus, trash2 } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
+import SitemapAutocomplete from '@/modules/core/SitemapAutocomplete';
 import { useProjectTestFormStore } from '@/stores/useProjectTestFormStore';
 import { Button, IconButton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useEffect, useRef, useState } from 'react';
 import styles from './ProjectTest.module.scss';
-import SitemapAutocomplete from '@/modules/core/SitemapAutocomplete';
 
 const getFilteredSitemap = (sitemap, structuredPages = [], randomPages = []) => {
-  if (!sitemap || sitemap.length === 0) return [];
-  const filterChildren = (sitemapArray) => {
-    return sitemapArray
-      .map((item) => {
-        const isItemInStructuredPages = structuredPages.some(page => page?.id && item?.id && page.id === item.id);
-        const isItemInRandomPages = randomPages?.some(page => page?.id && item?.id && page.id === item.id);
-        const isItemIncluded = isItemInRandomPages || isItemInStructuredPages;
-        item.isSelected = isItemIncluded;
-        const filteredChildren = item.children ? filterChildren(item.children) : [];
-        const hasChildren = filteredChildren.length > 0;
-        item.hasChildren = hasChildren;
-        if (isItemIncluded && hasChildren) {
-          item.disabled = true;
-        } else {
-          item.disabled = false;
-        }
-        return item;
-      })
-      .filter((item) => {
-        if (!item) return false;
-        if (item.isSelected && item.hasChildren) return true;
-        return !item.isSelected && (item.hasChildren || !item.children);
-      })
-      .map(item => ({
+  if (!sitemap?.length) return [];
+
+  const selectedIds = new Set([...structuredPages, ...randomPages].filter(p => p?.id).map(p => p.id));
+
+  const filterChildren = (items) => {
+    return items.reduce((acc, item) => {
+      if (!item) return acc;
+
+      const filteredChildren = filterChildren(item.children ?? []);
+      const isSelected = selectedIds.has(item.id);
+      const hasChildren = filteredChildren.length > 0;
+
+      // removes already picked pages
+      if (isSelected && !hasChildren) return acc;
+
+      // removes unselectable pages that have no remaining children
+      if (item.not_clickable && !hasChildren) return acc;
+
+      acc.push({
         ...item,
-        children: item.children ? filterChildren(item.children) : []
-      }));
+        children: filteredChildren,
+        isSelected,
+        hasChildren,
+        disabled: isSelected && hasChildren
+      });
+
+      return acc;
+    }, []);
   };
-  return filterChildren(sitemap || []);
+
+  return filterChildren(sitemap);
 };
 
 const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage }) => {
@@ -81,11 +83,12 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage }) =
     }
   };
 
+  const getSitemap = async (envId) => {
+    const envSitemap = await window.api.environment.getSitemap({ environment_id: envId });
+    setSitemap(envSitemap);
+  };
+
   useEffect(() => {
-    const getSitemap = async (envId) => {
-      const envSitemap = await window.api.environment.getSitemap({ environment_id: envId });
-      setSitemap(envSitemap);
-    };
     if (environmentType) {
       getSitemap(environmentType);
     }
@@ -94,6 +97,13 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage }) =
   useEffect(() => {
     setFilteredSitemap(getFilteredSitemap(sitemap, structuredPages, randomPages));
   }, [sitemap, structuredPages, randomPages]);
+
+  const handleSitemapUpdate = (newValue, index) => {
+    if (environmentType) {
+      getSitemap(environmentType);
+    }
+    onSiteMapUpdate(newValue, index);
+  };
 
   useEffect(() => {
     const prevLength = prevPagesLengthRef.current;
@@ -123,7 +133,7 @@ const SitemapForm = ({ pagesType = '', onSiteMapUpdate, addPage, removePage }) =
                 sitemap={filteredSitemap}
                 value={page}
                 environmentType={environmentType}
-                onValueUpdate={newValue => onSiteMapUpdate(newValue, index)}
+                onValueUpdate={newValue => handleSitemapUpdate(newValue, index)}
                 placeholder='Select page'
                 error={errors?.[pagesField]?.[index]}
                 leftIcon={false}

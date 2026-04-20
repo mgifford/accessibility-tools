@@ -1,3 +1,4 @@
+import { formatDomain } from '@/electron/lib/utils';
 import WebView from '@/modules/core/WebView/WebView.component';
 import { useProjectStore, useTerminalStore } from '@/stores';
 import { Box, Stack } from '@mui/material';
@@ -96,12 +97,13 @@ const Project = () => {
 
   if (!project || !selectedTest) return null;
 
-  const url = selectedTest.environment.url;
+  const url = selectedPage.domain ? formatDomain(selectedPage.domain) : selectedTest.environment.url;
+  const pagePath = `${url}/${selectedPage.path}`;
   return (
     <Stack height='100%' width='100%'>
       <Tabs />
       <Box height='100%' width='100%' flex={1}>
-        <WebView url={`${url}/${selectedPage.path}`} captureScreenshot={!project.image} projectId={project.id} />
+        <WebView url={pagePath} captureScreenshot={!project.image} projectId={project.id} />
       </Box>
     </Stack>
   );

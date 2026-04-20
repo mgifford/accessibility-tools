@@ -1,10 +1,9 @@
 import { chevronDown, search } from '@/assets/icons';
 import Icon from '@/modules/core/Icon';
-import { Autocomplete, Box, Button, InputAdornment, Paper, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, CircularProgress, createFilterOptions, InputAdornment, Paper, TextField, Typography } from '@mui/material';
 import classNames from 'classnames';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import style from './SitemapAutocomplete.module.scss';
-import { forwardRef } from 'react';
 
 const generateSitemapOptions = (tree, level = 0) => {
   if (!tree) return [];
@@ -36,12 +35,15 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
     onAutocompleteBlurNext = () => {},
     onAutocompleteBlurPrev = () => {}
   } = props;
+
   const wrapperRef = useRef(null);
   const paperRef = useRef(null);
   const addUrlBtnRef = useRef(null);
   const addUrlInputRef = useRef(null);
   const saveBtnInternalRef = useRef(null);
   const inputElRef = useRef(null);
+  const cursorPosRef = useRef(0);
+  const filterOptions = createFilterOptions();
 
   const [inputValue, setInputValue] = useState('');
   const [autocompleteValue, setAutocompleteValue] = useState(null);
@@ -49,6 +51,7 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
   const [isAddUrlMode, setIsAddUrlMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [customUrl, setCustomUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setAutocompleteValue(value || '');
@@ -67,15 +70,19 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
     return () => document.removeEventListener('mousedown', handleGlobalMouseDown);
   }, [isAutocompleteOpen]);
 
+  useEffect(() => {
+    if (addUrlInputRef.current) {
+      addUrlInputRef.current.setSelectionRange(cursorPosRef.current, cursorPosRef.current);
+    }
+  });
+
   const handleSubmitUrl = async (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (!customUrl.trim()) return;
-
-    let url = customUrl;
-    if (!url.startsWith('http')) url = `https://${url}`;
 
     try {
+      setIsSubmitting(true);
+      let url = customUrl.trim();
       const page = await window.api.environment.createPage({
         id: environmentType,
         url
@@ -91,6 +98,8 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
     } catch (err) {
       const formattedError = err?.message?.split('Error: ').pop() || 'Failed to create page';
       setErrorMessage(formattedError);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -144,6 +153,10 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
         id={id}
         fullWidth
         options={generateSitemapOptions(sitemap)}
+        filterOptions={(options, state) => {
+          const filtered = filterOptions(options, state);
+          return filtered.length > 0 ? filtered : [{ __empty: true }];
+        }}
         autoHighlight
         freeSolo
         disableCloseOnSelect
@@ -196,7 +209,6 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
                 ref.current = el;
               }
             }}
-
             placeholder={placeholder || 'Search'}
             variant='outlined'
             error={Boolean(error)}
@@ -233,6 +245,7 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
         )}
         getOptionDisabled={option => option.notClickable}
         renderOption={(props, option) => {
+          if (option.__empty) return null;
           const padding = `${(option.level + 1) * 12}px`;
           const fontWeight = option.level === 0 || option.hasChildren ? '500' : 'normal';
           const notClickable = option.notClickable;
@@ -281,6 +294,7 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
                           value={customUrl}
                           inputRef={addUrlInputRef}
                           onChange={(e) => {
+                            cursorPosRef.current = e.target.selectionStart;
                             setErrorMessage('');
                             setCustomUrl(e.target.value);
                           }}
@@ -302,6 +316,7 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
                         <Button
                           onClick={handleSubmitUrl}
                           ref={saveBtnInternalRef}
+                          disabled={isSubmitting}
                           onKeyDown={(e) => {
                             if (e.key !== 'Tab') return;
                             if (e.shiftKey) {
@@ -319,6 +334,7 @@ const SitemapAutocomplete = forwardRef((props, ref) => {
                             }
                           }}
                         >
+                          {isSubmitting && <CircularProgress className={style.progressSpinner} color='inherit' size={16} />}
                           <Typography>Save</Typography>
                         </Button>
                       </Box>

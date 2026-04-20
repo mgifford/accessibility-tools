@@ -1,5 +1,5 @@
 import { TEST_PDF_MAX_PAGES_IN_DETAILS } from '@/constants/report';
-import { chunkArray } from '@/electron/lib/utils';
+import { chunkArray, formatDomain } from '@/electron/lib/utils';
 import { useUiStore } from '@/stores';
 import { Box, LinearProgress, Typography } from '@mui/material';
 import { LineChart } from '@mui/x-charts/LineChart';
@@ -325,7 +325,8 @@ const Test = () => {
             <Box className={style.details}>
               {testStats?.map((stat) => {
                 const envPage = stat.test.environment_page;
-                const url = `${envPage.environment.url}/${envPage.path}`;
+                const domain = envPage.domain ? formatDomain(envPage.domain) : envPage.environment.url;
+                const url = `${domain}/${envPage.path}`;
                 if (!envPage) return;
                 return (
                   <Box key={envPage.id} className={style.stat}>
