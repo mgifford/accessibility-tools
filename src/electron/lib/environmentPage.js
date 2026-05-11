@@ -7,6 +7,7 @@ import sequelize, { bulkUpdateColumn, getModel } from './db';
 import EnvironmentLib from './environment';
 import EnvironmentTestLib from './environmentTest';
 import joiLib from './joi';
+import TestRunner from './testRunner';
 import { compareHostnames, fixTcTargets, formatDate, formatDomain, strToCase, urlExists } from './utils';
 
 class EnvironmentPageLib {
@@ -164,6 +165,46 @@ class EnvironmentPageLib {
         return page.toJSON();
       });
     } catch (e) {
+      console.log('Error creating environment page: ', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Scans a provided list of pages or the whole test
+   * @param {Object} input
+   * @param {string} input.environment_test_id - ID of the environment test
+   * @param {string[]} [input.ids] - IDs of the pages
+   * @param {{}} opt
+   */
+  static async scanPage(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        environment_test_id: Joi.id().required(),
+        ids: Joi.array().items(Joi.id()).optional() // if not present, scan the whole test
+      })
+    );
+    const data = await joiLib.validate(schema, input);
+    const transaction = await sequelize.transaction({ transaction: opt.transaction });
+    try {
+      const EnvironmentTestPage = getModel('environmentTestPage');
+      const scanOpts = {};
+      const where = {
+        environment_test_id: data.environment_test_id
+      };
+      if (data.ids && data.ids.length > 0) {
+        where.environment_page_id = data.ids;
+      }
+      if (opt.retry) {
+        scanOpts.automated_only = true;
+        scanOpts.update_existing = true;
+      }
+      await EnvironmentTestPage.update({ start_date: new Date(), end_date: null }, { where, transaction });
+      const testRunner = new TestRunner(data.environment_test_id);
+      await transaction.commit();
+      await testRunner.run({ page_ids: data.ids }, scanOpts);
+    } catch (e) {
+      await transaction.rollback();
       console.log('Error creating environment page: ', e);
       throw e;
     }
@@ -395,7 +436,7 @@ class EnvironmentPageLib {
         environment_test_id: Joi.id().required(),
         status: Joi.enum(TEST_CASE_PAGE_STATUS_VALUES).optional().allow(''),
         criteria: Joi.array().items(Joi.string()).optional().allow(''),
-        level: Joi.enum(STANDARD_CRITERIA_LEVELS).optional().allow(''),
+        level: Joi.array().items(Joi.enum(STANDARD_CRITERIA_LEVELS)).optional().allow(''),
         landmarks: Joi.array().items(Joi.string()).optional().allow(''),
         has_remediation: Joi.boolean().optional().allow(''),
         sort: Joi.object({
@@ -434,7 +475,7 @@ class EnvironmentPageLib {
         tcCriteriaWhere.id = data.criteria;
       }
 
-      if (data.level) {
+      if (data.level && data.level.length > 0) {
         tcCriteriaWhere.level = data.level;
       }
 
@@ -857,7 +898,9 @@ class EnvironmentPageLib {
       if (!target) {
         throw new Error('Environment test target not found');
       }
-      const dataToUpdate = {};
+      const dataToUpdate = {
+        is_manually_reviewed: true
+      };
       const relatedTargets = target.related_targets?.filter(t => t.status === target.status) || [];
       const relatedTargetIds = relatedTargets.map(t => t.id);
       const allIds = [target.id, ...relatedTargetIds];

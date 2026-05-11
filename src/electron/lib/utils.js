@@ -49,6 +49,24 @@ export const compareHostnames = (url1, url2) => {
 };
 
 /**
+ * Compares two URLs to see if they have the same origin and path.
+ * The URLs are first formatted to remove any protocol and www prefix.
+ * Then the origin and path are extracted from the formatted URLs and compared.
+ * @param {string} url1 - the first URL to compare
+ * @param {string} url2 - the second URL to compare
+ * @returns - true if the origins and paths are the same, false otherwise
+ */
+export const compareUrls = (url1, url2) => {
+  try {
+    const urlObj1 = new URL(formatDomain(url1));
+    const urlObj2 = new URL(formatDomain(url2));
+    return `${urlObj1.origin}${urlObj1.pathname}` === `${urlObj2.origin}${urlObj2.pathname}`;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
    * Performs a url checkup on the provided URL.
    * @param {string} url - The URL to perform checkup on.
    * @returns - an object containing a success key set to true if successful, or false if failed and an error message.
@@ -208,4 +226,19 @@ export const strToCase = (str, format) => {
     return str[0].toUpperCase() + str.slice(1).toLowerCase();
   }
   return str;
+};
+
+/**
+ * Returns the partition string for the given URL, to be used in BrowserWindow to persist session.
+ * @param {string} url
+ * @return - The partition string
+ */
+export const getUrlPartitionString = (url) => {
+  try {
+    const urlObj = new URL(formatDomain(url));
+    const partition = `persist:${urlObj.hostname}`;
+    return partition;
+  } catch {
+    return url;
+  }
 };

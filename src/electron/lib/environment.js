@@ -353,8 +353,7 @@ class EnvironmentLib {
     );
     const data = await joiLib.validate(schema, input);
     try {
-      const Environment = getModel('environment'),
-        EnvironmentPage = getModel('environmentPage');
+      const Environment = getModel('environment');
       const environment = await Environment.findByPk(data.id);
       if (!environment) {
         throw new Error('Environment not found');

@@ -500,13 +500,15 @@ const Terminal = ({}) => {
                     useChipValueAsLabel
                   />
                   <Select
-                    placeHolder='Select level'
                     options={[{ label: 'All levels', value: '' }, ...levelOptions]}
+                    multiple
                     value={levelOptions.length === 1 ? levelOptions[0].value : filter.level}
                     onChange={e => handleFilterChange('level', e)}
+                    placeHolder='Level'
                     className={style.formField}
+                    placeholderClassName={style.selectField}
                     selectClassName={style.selectField}
-                    minWidth='110px !important'
+                    minWidth='90px !important'
                     transparentBg
                   />
                   <Select
@@ -514,9 +516,9 @@ const Terminal = ({}) => {
                     multiple
                     value={filter.landmarks}
                     onChange={e => handleFilterChange('landmarks', e)}
-                    className={style.formField}
                     placeHolder='Landmark'
                     menuMaxHeight='400px'
+                    className={style.formField}
                     chipClassName={style.chip}
                     placeholderClassName={style.selectField}
                     selectClassName={style.selectField}

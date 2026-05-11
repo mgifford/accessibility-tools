@@ -4,6 +4,7 @@
   width: 100%;
   display: flex;
   align-items: center;
+  gap: 16px;
   overflow: auto hidden;
   background-color: $palette-background-resizable-blocks;
   border-bottom: 1px solid $palette-border-resizable-blocks;
@@ -19,15 +20,53 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 100%;
+  .tab {
+    height: 100%;
+  }
 }
 
-.openDevToolsBtn {
+.iconsContainer {
   margin-right: 16px;
-  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding-block: 4px;
+  .iconBtnContainer {
+    height: 100%;
+  }
+  .splitBtn {
+    height: 100%;
+    background: $palette-background-content;
 
-  :global(.MuiButton-icon) {
+    @media (prefers-color-scheme: dark) {
+      background: $palette-dark-background-content;
+    }
+  }
+  .icon {
+    border: 1px solid $palette-table-border;
+    border-radius: 10px;
+
+    height: 100%;
+    min-width: 36px !important;
+    aspect-ratio: 1;
+    &:hover {
+      background: $palette-menu-active-bar;
+    }
+    background: $palette-background-content;
+    @media (prefers-color-scheme: dark) {
+      background: $palette-dark-background-content;
+    }
     svg {
-      font-size: 44px;
+      background: transparent;
+      font-size: 20px;
+    }
+  }
+  .addPageIcon,
+  .devtoolsIcon {
+    svg {
+      fill: transparent;
     }
   }
 }

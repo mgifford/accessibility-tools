@@ -1,28 +1,30 @@
 import { SCREENSHOT_DEFAULT_HEIGHT, SCREENSHOT_DEFAULT_WIDTH } from '@/constants/app';
-import { useTerminalStore, useUiStore } from '@/stores';
-import { useProjectStore } from '@/stores/useProjectStore';
-import useWebviewStore from '@/stores/useWebviewStore';
+import { formatDomain, getUrlPartitionString } from '@/electron/lib/utils';
+import { useProjectStore, useTerminalStore, useUiStore, useWebviewStore } from '@/stores';
 import { visuallyHidden } from '@mui/utils';
 import { useRouter } from 'next/router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import style from './WebView.module.scss';
 
 const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
   if (!url) return null;
-  let urlObj;
   try {
-    urlObj = new URL(url);
+    new URL(url);
   } catch (error) {
     console.error('Invalid URL:', url);
     router.push('/error');
     return null;
   }
+  const router = useRouter();
+
   const { setIsPageLoading } = useProjectStore();
   const { clickedTargetContext } = useTerminalStore();
-  const { setIsDomReady, setOpenDevTools, reset } = useWebviewStore();
-  const ref = useRef();
-  const router = useRouter();
+  const { setIsDomReady, setOpenDevTools, setCurrentUrl, reset } = useWebviewStore();
   const { isResizing, rightDrawerSettings } = useUiStore();
+
+  const ref = useRef(null);
+  const cleanupRef = useRef(null);
+
   const [wait, setWait] = useState(0);
 
   const loadstart = () => {
@@ -31,6 +33,11 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
   const loadstop = () => {
     setIsPageLoading(false);
   };
+
+  const cleanup = useCallback(() => {
+    cleanupRef.current?.();
+    cleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     const webview = ref.current;
@@ -63,6 +70,20 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
   useEffect(() => {
     setWait(300);
   }, [rightDrawerSettings.isOpen]);
+
+  useEffect(() => {
+    cleanup();
+    cleanupRef.current = window.api.webview.onNavigate((url) => {
+      try {
+        url = formatDomain(url);
+        new URL(url);
+        setCurrentUrl(url);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+    return cleanup;
+  }, [cleanup]);
 
   const screenshotCaptureHandler = async (webview) => {
     if (!webview) return;
@@ -169,7 +190,7 @@ const WebView = ({ url, captureScreenshot = false, projectId = null }) => {
         aria-describedby='webview-instructions'
         tabIndex={0}
         webpreferences='allowRunningInsecureContent=yes, disableWebSecurity=yes'
-        partition={`persist:${urlObj.hostname}`}
+        partition={getUrlPartitionString(url)}
         style={{
           pointerEvents: isResizing ? 'none' : 'all'
         }}

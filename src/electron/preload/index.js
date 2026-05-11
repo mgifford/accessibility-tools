@@ -55,9 +55,12 @@ const api = {
     generateReport: (data, opt) => ipcRenderer.invoke('environmentTest:generateReport', data, opt),
     onTestCompleted: cb => createIpcListener('environmentTest:onTestCompleted', cb),
     generateOccurrenceData: (data, opt) => ipcRenderer.invoke('environmentTest:generateOccurrenceData', data, opt),
-    hasOccurrenceData: (data, opt) => ipcRenderer.invoke('environmentTest:hasOccurrenceData', data, opt)
+    hasOccurrenceData: (data, opt) => ipcRenderer.invoke('environmentTest:hasOccurrenceData', data, opt),
+    addPage: (data, opt) => ipcRenderer.invoke('environmentTest:addPage', data, opt),
+    rescanSitemap: (data, opt) => ipcRenderer.invoke('environmentTest:rescanSitemap', data, opt)
   },
   environmentPage: {
+    scanPage: (data, opt) => ipcRenderer.invoke('environmentPage:scanPage', data, opt),
     findTestCases: (data, opt) => ipcRenderer.invoke('environmentPage:findTestCases', data, opt),
     findTestCaseNodes: (data, opt) => ipcRenderer.invoke('environmentPage:findTestCaseNodes', data, opt),
     readTestCase: (data, opt) => ipcRenderer.invoke('environmentPage:readTestCase', data, opt),
@@ -154,6 +157,9 @@ const api = {
   landmark: {
     find: (data, opt) => ipcRenderer.invoke('landmark:find', data, opt),
     read: (data, opt) => ipcRenderer.invoke('landmark:read', data, opt)
+  },
+  webview: {
+    onNavigate: cb => createIpcListener('webview:navigate', cb)
   }
 };
 

@@ -3,6 +3,7 @@ import log from 'electron-log';
 import fs from 'fs';
 import Joi from 'joi';
 import path from 'path';
+import { Op } from 'sequelize';
 import sequelize, { bulkUpdateColumn, getModel } from './db';
 import EnvironmentPageLib from './environmentPage';
 import joiLib from './joi';
@@ -40,7 +41,8 @@ class AxeCoreLib {
    * @param {object} input.results - Results of the axe run
    * @param {string} input.environment_page_id - environment page id
    * @param {string} input.environment_test_id - environment test id
-   * @param {{}} opt
+   * @param {Object} opt
+   * @param {boolean} opt.update_existing - whether to update existing results
    */
   static async handleResult(input = {}, opt = {}) {
     const schema = joiLib.schema(() =>
@@ -51,21 +53,24 @@ class AxeCoreLib {
       })
     );
     const data = await joiLib.validate(schema, input);
-    const transaction = await sequelize.transaction();
+    const { update_existing = false } = opt;
+    const transaction = await sequelize.transaction({ transaction: opt.transaction });
+
     try {
       if (data.results instanceof Error) {
         log.error('Axe Error');
         throw new Error('Axe Error');
       }
+
       const TestCaseEnvironmentTestPage = getModel('testCaseEnvironmentTestPage'),
         TestCaseEnvironmentTestPageTarget = getModel('testCaseEnvironmentTestPageTarget'),
         EnvironmentTestPage = getModel('environmentTestPage'),
+        TestPageTargetOccurrence = getModel('testPageTargetOccurrence'),
         TestCase = getModel('testCase');
 
       const STATUSES = {
         PASS: 'PASS',
         FAIL: 'FAIL',
-        NOT_APPLICABLE: 'NOT_APPLICABLE',
         INCOMPLETE: 'INCOMPLETE'
       };
 
@@ -73,7 +78,7 @@ class AxeCoreLib {
         where: {
           environment_page_id: data.environment_page_id,
           environment_test_id: data.environment_test_id,
-          status: ['OPENED', 'IN_PROGRESS']
+          status: update_existing ? Object.values(STATUSES) : ['OPENED', 'IN_PROGRESS']
         },
         include: [
           {
@@ -97,11 +102,10 @@ class AxeCoreLib {
         ]
       });
 
-      const { violations, inapplicable, incomplete, passes } = data.results;
+      const { violations, incomplete, passes } = data.results;
 
       const STATUS_RESULTS = {
         [STATUSES.INCOMPLETE]: incomplete,
-        [STATUSES.NOT_APPLICABLE]: inapplicable,
         [STATUSES.PASS]: passes,
         [STATUSES.FAIL]: violations // keep the fail at the end so that it overwrites the other statuses
       };
@@ -141,6 +145,46 @@ class AxeCoreLib {
         tc.nodes = Array.from(nodesMap.values());
         return tc;
       });
+
+      if (update_existing) {
+        const testCasePageIds = updatedTestCases.map(tc => tc.id);
+
+        const idsToDestroy = new Set();
+
+        // Delete all nodes that are not manually reviewed —
+        // these are safe to always wipe and recreate
+        const firstSet = await TestCaseEnvironmentTestPageTarget.findAll({
+          where: {
+            test_case_page_id: testCasePageIds,
+            is_manually_reviewed: { [Op.ne]: true }
+          },
+          transaction
+        });
+        firstSet.forEach((item) => {
+          idsToDestroy.add(item.id);
+        });
+
+        const idsArray = Array.from(idsToDestroy);
+        await TestPageTargetOccurrence.destroy({
+          where: {
+            [Op.or]: [
+              {
+                page_target_id: idsArray
+              },
+              {
+                related_page_target_id: idsArray
+              }
+            ]
+          },
+          transaction
+        });
+        await TestCaseEnvironmentTestPageTarget.destroy({
+          where: {
+            id: idsArray
+          },
+          transaction
+        });
+      }
 
       // create the target data for each node
       let targetDataToCreate = [];
@@ -186,7 +230,9 @@ class AxeCoreLib {
           transaction
         }
       );
+
       await transaction.commit();
+
       // assign default remediations to failed nodes
       const failedNodesRes = await EnvironmentPageLib.findTestCaseNodes({
         environment_page_id: data.environment_page_id,

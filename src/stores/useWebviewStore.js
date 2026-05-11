@@ -2,14 +2,14 @@ import { create } from 'zustand';
 
 const initialState = {
   isDomReady: false,
-  openDevTools: () => {}
+  openDevTools: () => {},
+  currentUrl: ''
 };
 
-const useWebviewStore = create(set => ({
+export const useWebviewStore = create(set => ({
   ...initialState,
   setIsDomReady: isDomReady => set({ isDomReady }),
   setOpenDevTools: openDevTools => set({ openDevTools }),
+  setCurrentUrl: currentUrl => set({ currentUrl }),
   reset: () => set(initialState)
 }));
-
-export default useWebviewStore;

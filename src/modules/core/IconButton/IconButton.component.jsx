@@ -13,18 +13,18 @@ import {
   edit2,
   eye,
   filter,
+  info,
+  link,
   moon,
   moreHorizontal,
+  moreVertical,
   playCircle,
   search,
   share,
   share2,
   sun,
   trash,
-  moreVertical,
-  xIcon,
-  link,
-  info
+  xIcon
 } from '@/assets/icons';
 
 const ICON_MAP = {
@@ -47,7 +47,7 @@ const ICON_MAP = {
   moreVert: moreVertical
 };
 
-const IconButton = forwardRef(({ Icon, tooltip, badge, className, ...rest }, ref) => {
+const IconButton = forwardRef(({ Icon, tooltip, badge, className, btnContainerClassName = '', ...rest }, ref) => {
   let IconComponent = null;
 
   if (typeof Icon === 'string') {
@@ -57,12 +57,14 @@ const IconButton = forwardRef(({ Icon, tooltip, badge, className, ...rest }, ref
   }
 
   const btn = (
-    <Button
-      className={classNames(styles.root, className)}
-      variant='outlined'
-      endIcon={IconComponent ? <IconComponent /> : null}
-      {...rest}
-    />
+    <span style={{ display: 'inline-block' }} className={btnContainerClassName}>
+      <Button
+        className={classNames(styles.root, className)}
+        variant='outlined'
+        endIcon={IconComponent ? <IconComponent /> : null}
+        {...rest}
+      />
+    </span>
   );
 
   if (!tooltip && !badge) return btn;
@@ -75,7 +77,7 @@ const IconButton = forwardRef(({ Icon, tooltip, badge, className, ...rest }, ref
         TransitionProps={{ timeout: 0 }}
         placement='top'
       >
-        <span style={{ display: 'inline-block' }}>{btn}</span>
+        {btn}
       </Tooltip>
     );
   }
@@ -90,7 +92,7 @@ const IconButton = forwardRef(({ Icon, tooltip, badge, className, ...rest }, ref
           horizontal: 'right'
         }}
       >
-        <span style={{ display: 'inline-block' }}>{btn}</span>
+        {btn}
       </Badge>
     );
   }
@@ -110,7 +112,7 @@ const IconButton = forwardRef(({ Icon, tooltip, badge, className, ...rest }, ref
           horizontal: 'right'
         }}
       >
-        <span style={{ display: 'inline-block' }}>{btn}</span>
+        {btn}
       </Badge>
     </Tooltip>
   );

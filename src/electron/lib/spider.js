@@ -1,7 +1,8 @@
 import { CRAWL_DEPTH, MAX_TIME_TO_CRAWL } from '@/constants/app';
 import axios from 'axios';
-import { BrowserWindow, session } from 'electron';
+import { BrowserWindow } from 'electron';
 import { parseString } from 'xml2js';
+import { getUrlPartitionString } from './utils';
 
 const ASSET_TYPES = ['image', 'font', 'video', 'media', 'stylesheet', 'websocket'];
 const BLOCKED_URLS = ['doubleclick.net', 'facebook.net', 'js.hs-scripts.com'];
@@ -57,7 +58,7 @@ class Spider {
       width: 800,
       height: 600,
       show: false,
-      webPreferences: { offscreen: true, sandbox: true, webSecurity: false, session: session.fromPartition(this.urlObj.hostname) }
+      webPreferences: { offscreen: true, sandbox: true, webSecurity: false, partition: getUrlPartitionString(this.initURL) }
     });
     window.webContents.session.webRequest.onBeforeRequest(filter, (details, callback) => {
       const type = details.resourceType,
@@ -180,7 +181,7 @@ class Spider {
   async #crawl(startUrl, depth) {
     const links = new Set();
     const visitedUrls = [];
-    const domain = this.#stripUrl(this.initURL);
+    const domain = this.#stripUrl(this.urlObj.hostname);
     let window = this.#createWindow();
     /**
      * A recursive function to get urls from different pages according to the depth

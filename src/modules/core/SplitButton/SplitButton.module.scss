@@ -1,0 +1,71 @@
+@import "constants/theme";
+.root {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid $palette-table-border;
+  .buttonGroup {
+    border-radius: 8px;
+    height: 100%;
+
+    button {
+      min-width: 0;
+      white-space: nowrap;
+      text-transform: none;
+      font-weight: 600;
+      padding: 8px 16px;
+      line-height: 1.5;
+      border: none;
+      height: 100%;
+
+      p {
+        color: inherit;
+        @media (prefers-color-scheme: dark) {
+          color: $palette-dark-primary-text;
+        }
+      }
+    }
+
+    .actionBtn {
+      flex-grow: 1;
+      border-right: 1px solid $palette-table-border;
+    }
+
+    .iconBtn {
+      flex-shrink: 0;
+      width: 36px;
+      padding: 8px 0 !important;
+      height: 100% !important;
+      svg {
+        fill: transparent;
+      }
+    }
+  }
+
+  .paper {
+    border-radius: 8px;
+    margin-top: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+    .menuList {
+      padding: 0;
+
+      .menuItem {
+        font-weight: 500;
+        padding: 10px 16px;
+        white-space: nowrap;
+
+        &:first-of-type {
+          border-radius: 8px 8px 0 0;
+        }
+
+        &:last-of-type {
+          border-radius: 0 0 8px 8px;
+        }
+
+        &:only-child {
+          border-radius: 8px;
+        }
+      }
+    }
+  }
+}

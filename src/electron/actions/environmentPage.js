@@ -2,6 +2,9 @@ import { dialog, ipcMain } from 'electron';
 import fs from 'fs-extra';
 import EnvironmentPageLib from '../lib/environmentPage';
 
+ipcMain.handle('environmentPage:scanPage', async (_, data, opt) => {
+  return EnvironmentPageLib.scanPage(data, opt);
+});
 ipcMain.handle('environmentPage:findTestCases', async (_, data, opt) => {
   return EnvironmentPageLib.findTestCases(data, opt);
 });

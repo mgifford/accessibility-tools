@@ -51,3 +51,9 @@ ipcMain.handle('environmentTest:generateOccurrenceData', async (_, data, opt) =>
 ipcMain.handle('environmentTest:hasOccurrenceData', async (_, data, opt) => {
   return EnvironmentTestLib.hasOccurrenceData(data, opt);
 });
+ipcMain.handle('environmentTest:addPage', async (_, data, opt) => {
+  return EnvironmentTestLib.addPage(data, opt);
+});
+ipcMain.handle('environmentTest:rescanSitemap', async (_, data, opt) => {
+  return EnvironmentTestLib.rescanSitemap(data, opt);
+});

@@ -1,14 +1,16 @@
 import { REPORT_FORMATS, REPORT_TYPES } from '@/constants/report';
+import { ENVIRONMENT_TEST_CASE_STATUS_VALUES } from '@/electron/db/models/environmentTest';
+import { ENVIRONMENT_TEST_PAGE_TYPE_VALUES } from '@/electron/db/models/environmentTestPage';
 import { formatDate } from 'date-fns';
 import Joi from 'joi';
 import { literal, Op } from 'sequelize';
-import { ENVIRONMENT_TEST_CASE_STATUS_VALUES } from '../db/models/environmentTest';
 import ArchiveLib from './archive';
 import CoreLib from './core';
 import sequelize, { bulkUpdateColumn, getModel } from './db';
 import EnvironmentPageLib from './environmentPage';
 import joiLib from './joi';
 import ReportLib from './report';
+import Spider from './spider';
 import TestRunner from './testRunner';
 
 class EnvironmentTestLib {
@@ -311,7 +313,7 @@ class EnvironmentTestLib {
    * @param {Object} input
    * @param {string} input.id - The id of the environment test.
    * @param {{}} [opt]
-   * @returns {Object} - The updated environment test object in JSON format.
+   * @returns - The updated environment test object in JSON format.
    * @throws Will throw an error if the environment test is not found.
    */
   static async startTest(input = {}, opt = {}) {
@@ -331,6 +333,76 @@ class EnvironmentTestLib {
       const testRunner = new TestRunner(testObj.id);
       testRunner.run();
       return testObj.toJSON();
+    } catch (e) {
+      console.log('Error reading environment test: ', e);
+    }
+  }
+
+  /**
+   * Adds a page to a test
+   * @param {Object} input
+   * @param {string} input.id - The id of the environment test.
+   * @param {string} input.environment_page_id - The id of the environment page.
+   * @param {string} input.type - The type of the page.
+   * @param {{}} opt
+   */
+  static async addPage(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        id: Joi.id().required(),
+        environment_page_id: Joi.id().required(),
+        type: Joi.enum(ENVIRONMENT_TEST_PAGE_TYPE_VALUES).required()
+      })
+    );
+    const data = await joiLib.validate(schema, input);
+    try {
+      const EnvironmentTest = getModel('environmentTest');
+      const test = await EnvironmentTest.findByPk(data.id);
+      if (!test) {
+        throw new Error('environment test not found');
+      }
+      let testObj;
+      if (data.type === 'RANDOM') {
+        testObj = await test.addRandom_pages(data.environment_page_id);
+      }
+      if (data.type === 'STRUCTURED') {
+        testObj = await test.addStructured_pages(data.environment_page_id);
+      }
+      if (!testObj) {
+        throw new Error('page not added to environment test');
+      }
+      await EnvironmentPageLib.createTestCases({ environment_test_id: data.id, pages: [data.environment_page_id] });
+    } catch (e) {
+      console.log('Error adding page to environment test: ', e);
+    }
+  };
+
+  /**
+   * Rescans the sitemap of an environment test
+   * @param {Object} input
+   * @param {string} input.id - The id of the environment test.
+   * @param {string} input.url - The url to scan the sitemap from.
+   * @param {{}} [opt]
+   * @returns - The number of pages found
+   */
+  static async rescanSitemap(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        id: Joi.id().required(),
+        url: Joi.string().required()
+      })
+    );
+    const data = await joiLib.validate(schema, input);
+    try {
+      const EnvironmentTest = getModel('environmentTest');
+      const test = await EnvironmentTest.findByPk(data.id);
+      if (!test) {
+        throw new Error('environment test not found');
+      }
+      const spider = new Spider(data.url);
+      const sitemap = await spider.start();
+      await EnvironmentPageLib.updateSitemap({ environment_id: test.environment_id, sitemap: sitemap });
+      return { count: sitemap.length };
     } catch (e) {
       console.log('Error reading environment test: ', e);
     }

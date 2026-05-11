@@ -1,22 +1,25 @@
 import { BrowserWindow } from 'electron';
 import log from 'electron-log';
+import Joi from 'joi';
 import { getMainWindow } from '../main';
 import AxeCoreLib from './axecore';
 import { getModel } from './db';
 import EnvironmentTestLib from './environmentTest';
+import joiLib from './joi';
 import LandmarkRunner from './landmarkRunner';
-import { formatDomain, timeoutFn } from './utils';
+import { formatDomain, getUrlPartitionString, timeoutFn } from './utils';
 
 class TestRunner {
   /**
    * Construct a new TestRunner instance.
-   * @param {string} testId - ID of the environment test
+   * @param {string} test_id - ID of the environment test
    */
-  constructor(testId) {
-    this.testId = testId;
+  constructor(test_id) {
+    this.testId = test_id;
     this.window = null;
     this.currentPage = null;
     this.mainWindow = getMainWindow();
+    this.opt = {};
   }
 
   /**
@@ -37,23 +40,29 @@ class TestRunner {
    * at the end, the currentPage variable is set to null for the next run
    * the results are then forwarded to the axe-core lib
    */
-  async #init() {
+  async #init(url) {
     const axeScript = await AxeCoreLib.getAxeScript();
     const window = new BrowserWindow({
       width: 800,
       height: 600,
       show: false,
-      webPreferences: { offscreen: true, sandbox: true, webSecurity: false }
+      webPreferences: { offscreen: true, sandbox: true, webSecurity: false, partition: getUrlPartitionString(url) }
     });
     log.info('testing window created');
     window.webContents.on('did-finish-load', async () => {
       if (this.currentPage) {
+        const promises = [];
         try {
           await window.webContents.executeJavaScript(this.#injectRemoveInnerHTMLFn());
           await window.webContents.executeJavaScript(this.#injectUniqueSelectorFn());
           await window.webContents.executeJavaScript(axeScript);
 
-          await Promise.all([this.#handleManualTests(), this.#handleAutomatedTests()]);
+          if (!this.opt.automated_only) {
+            promises.push(this.#handleManualTests());
+          }
+          promises.push(this.#handleAutomatedTests(this.opt));
+
+          await Promise.all(promises);
 
           const landmarkRunner = new LandmarkRunner(this.window, this.currentPage.id, this.testId);
           await landmarkRunner.run();
@@ -72,14 +81,14 @@ class TestRunner {
   /**
    * runs the test on a specific page.
    * the currentPage variable is provided an id, along with resolve and reject to be handled in the listener
-   * @param {String} pageId the environment page object id
+   * @param {String} page_id the environment page object id
    */
-  async #runTestOnPage(pageId) {
-    log.info('running test on page:', pageId);
+  async #runTestOnPage(page_id) {
+    log.info('running test on page:', page_id);
     const EnvironmentPage = getModel('environmentPage'),
       EnvironmentTestPage = getModel('environmentTestPage');
     try {
-      const page = await EnvironmentPage.findByPk(pageId, {
+      const page = await EnvironmentPage.findByPk(page_id, {
         attributes: ['id', 'path', 'domain'],
         include: [
           {
@@ -110,7 +119,7 @@ class TestRunner {
         { start_date: new Date() },
         {
           where: {
-            environment_page_id: pageId,
+            environment_page_id: page_id,
             environment_test_id: this.testId
           }
         }
@@ -123,14 +132,15 @@ class TestRunner {
         this.window.webContents.loadURL(url);
       });
     } catch (e) {
-      log.error('Error running test on page', pageId);
+      console.log(e);
+      log.error('Error running test on page', page_id);
       log.debug(e);
       const TestCaseEnvironmentTestPage = getModel('testCaseEnvironmentTestPage');
       await EnvironmentTestPage.update(
         { end_date: new Date() },
         {
           where: {
-            environment_page_id: pageId,
+            environment_page_id: page_id,
             environment_test_id: this.testId
           }
         }
@@ -139,7 +149,7 @@ class TestRunner {
         { status: 'ERROR', end_date: new Date() },
         {
           where: {
-            environment_page_id: pageId,
+            environment_page_id: page_id,
             environment_test_id: this.testId,
             status: 'IN_PROGRESS'
           }
@@ -263,14 +273,14 @@ class TestRunner {
   /**
    * runs and processes the automated tests
    */
-  async #handleAutomatedTests() {
+  async #handleAutomatedTests(opt = {}) {
     const runScript = await AxeCoreLib.getRunScript();
     const res = await this.window.webContents.executeJavaScript(runScript);
     return await AxeCoreLib.handleResult({
       results: res,
       environment_page_id: this.currentPage.id,
       environment_test_id: this.testId
-    });
+    }, opt);
   }
 
   /**
@@ -279,13 +289,22 @@ class TestRunner {
    * Each page test has a timeout of 30 seconds.
    * Updates the test status to 'TEST_COMPLETED' if successful, or 'TEST_FAILED' if any error occurs.
    * Logs any errors encountered during the test execution. Cleans up resources upon completion.
+   * @param {Object} input
+   * @param {string} [input.page_ids] - IDs of the pages to test
+   * @param {Object} opt
+   * @param {boolean} opt.automated_only - Only run automated tests
+   * @param {boolean} opt.update_existing - Only update existing results
    * @throws Will throw an error if the environment test is not found or if all page tests fail.
    */
-  async run() {
-    await this.#init();
+  async run(input = {}, opt = {}) {
+    const schema = joiLib.schema(() =>
+      Joi.object({
+        page_ids: Joi.array().items(Joi.id()).optional()
+      }));
+    const data = await joiLib.validate(schema, input);
     const EnvironmentTest = getModel('environmentTest');
-
     try {
+      this.opt = opt;
       const environmentTest = await EnvironmentTest.findByPk(this.testId, {
         include: [
           {
@@ -314,7 +333,11 @@ class TestRunner {
       if (!environmentTest) {
         throw new Error('environment test not found');
       }
-      const pages = [...environmentTest.structured_pages, ...environmentTest.random_pages];
+      await this.#init(environmentTest.environment.url);
+      let pages = [...environmentTest.structured_pages, ...environmentTest.random_pages];
+      if (data.page_ids && data.page_ids.length > 0) {
+        pages = pages.filter(p => data.page_ids.includes(p.id));
+      }
       let errorCount = 0;
       for (const page of pages) {
         try {

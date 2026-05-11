@@ -162,7 +162,7 @@ const renderAuditMode = () => {
 export default function FileExplorer({ id }) {
   const isAuditPage = typeof window !== 'undefined' && window.location.pathname.includes('/audit');
   const { openSnackbar } = useSnackbarStore();
-  const { project, tests, selectedTest, setSelectedPage, testStats } = useProjectStore();
+  const { project, tests, selectedTest, setSelectedPage, testStats, sitemap, setSitemap } = useProjectStore();
   const { audit, selectedCriterion, setSelectedCriterion } = useAuditStore();
   const { filter, setFilter, fetchData, setPageId, setTestId, setIsAudit, testsFilter, setTestsFilter, setHideTerminal, isAutomatedTestFinished } = useTerminalStore(state => ({
     testsFilter: state.tests.filter,
@@ -180,7 +180,6 @@ export default function FileExplorer({ id }) {
 
   const ref = useRef(null);
   const { width } = useUiStore(({ editor }) => ({ width: editor.width }));
-  const [sitemap, setSitemap] = useState([]);
   const [selectedTab, setSelectedTab] = useState(0);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 

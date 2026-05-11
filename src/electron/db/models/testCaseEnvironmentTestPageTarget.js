@@ -46,6 +46,10 @@ export default (sequelize, DataTypes) => {
       related_remediation_count: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+      },
+      is_manually_reviewed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
       }
     },
     {

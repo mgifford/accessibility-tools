@@ -94,6 +94,15 @@ const createWindow = async () => {
       webviewContents.loadURL(url);
       return { action: 'deny' };
     });
+    webviewContents.on('did-navigate', (_, url) => {
+      mainWindow.webContents.send('webview:navigate', url);
+    });
+
+    webviewContents.on('did-navigate-in-page', (_, url, isMainFrame) => {
+      if (isMainFrame) {
+        mainWindow.webContents.send('webview:navigate', url);
+      }
+    });
   });
   window = mainWindow;
   return mainWindow;
