@@ -54,7 +54,7 @@ We use **[GitHub Issues](https://github.com/clymio/accessibility-tools/issues)**
 
 ## Documentation
 
-For futher information on how to use the app, please refer to our **[documentation](https://accessibility-tools.clym.io/)**.
+For further information on how to use the app, please refer to our **[documentation](https://accessibility-tools.clym.io/)**.
 
 ## GitHub Pages
 
