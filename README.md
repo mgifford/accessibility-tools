@@ -56,6 +56,14 @@ We use **[GitHub Issues](https://github.com/clymio/accessibility-tools/issues)**
 
 For futher information on how to use the app, please refer to our **[documentation](https://accessibility-tools.clym.io/)**.
 
+## GitHub Pages
+
+This repository includes a standalone static site in `/gh-pages` that is deployed with GitHub Actions.
+
+- Workflow: `.github/workflows/deploy-pages.yml`
+- Deploy trigger: push to `main` (and manual `workflow_dispatch`)
+- Published artifact path: `/gh-pages`
+
 ## Contributing
 
 We welcome contributions! Please read our **[Contribution Guide](CONTRIBUTING.md)** for instructions on setting up your environment, submitting pull requests, and following our coding standards.
