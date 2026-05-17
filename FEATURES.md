@@ -17,10 +17,10 @@ Accessibility Tools is an Electron application with:
 
 The primary automated test flow is implemented in:
 
-- `/home/runner/work/accessibility-tools/accessibility-tools/src/electron/lib/testRunner.js`
-- `/home/runner/work/accessibility-tools/accessibility-tools/src/electron/lib/axecore.js`
-- `/home/runner/work/accessibility-tools/accessibility-tools/src/electron/lib/landmarkRunner.js`
-- `/home/runner/work/accessibility-tools/accessibility-tools/src/electron/db/systemData.json`
+- `src/electron/lib/testRunner.js`
+- `src/electron/lib/axecore.js`
+- `src/electron/lib/landmarkRunner.js`
+- `src/electron/db/systemData.json`
 
 ## What axe-core Provides in This System
 
@@ -197,7 +197,7 @@ Technically, the application should be understood as an accessibility testing an
 
 ## Current Built-in Data Snapshot
 
-As represented in `/home/runner/work/accessibility-tools/accessibility-tools/src/electron/db/systemData.json`, the repository currently includes:
+As represented in `src/electron/db/systemData.json`, the repository currently includes:
 
 - 133 test cases
 - 100 axe rules
