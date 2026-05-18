@@ -29,7 +29,7 @@ Scanner controls:
 - Private/internal hosts are blocked:
   - localhost/local/internal suffixes
   - private IPv4 ranges (10.x, 172.16-31.x, 192.168.x, loopback)
-- Workflow concurrency group: `webscan-pages`.
+- Workflow concurrency group: `pages` (serializes Pages deployments).
 - Queue path is label-gated (`scan-request`).
 
 ## Reports and publishing

@@ -9,7 +9,6 @@ const DEFAULTS = {
   depth: 2,
   maxPages: 25,
   timeoutMs: 20000,
-  sameDomainOnly: true,
   respectRobots: true,
   reportType: 'summary',
   maxPagesHardCap: 100
@@ -103,9 +102,10 @@ function extractLinksFromHtml(html, pageUrl, baseUrl) {
   for (const match of html.matchAll(hrefRegex)) {
     const href = match[2]?.trim();
     if (!href) continue;
-    if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) continue;
+    if (/^(mailto|tel|javascript|data|vbscript):/i.test(href)) continue;
     try {
       const absolute = new URL(href, pageUrl).toString();
+      if (!isHttpUrl(absolute)) continue;
       const normalized = canonicalizeUrl(absolute);
       if (!normalized) continue;
       if (isSameHostname(baseUrl, normalized)) {
@@ -153,7 +153,11 @@ async function readSitemapUrls(baseUrl, timeoutMs) {
 
 function blockedByRobots(targetUrl, robotsDisallow) {
   const pathname = new URL(targetUrl).pathname || '/';
-  return robotsDisallow.some(rule => rule !== '/' && pathname.startsWith(rule));
+  return robotsDisallow.some((rule) => {
+    if (!rule) return false;
+    if (rule === '/') return true;
+    return pathname.startsWith(rule);
+  });
 }
 
 async function crawlUrls({ targetUrl, depth, maxPages, timeoutMs, respectRobots }) {
@@ -407,6 +411,7 @@ async function main() {
   const results = [];
   for (const url of crawlResult.urls) {
     // Sequential intentionally to reduce request burst/rate impact.
+    // This may increase total scan duration but avoids overwhelming target servers.
     // eslint-disable-next-line no-await-in-loop
     const pageResult = await scanUrl(browser, url, timeoutMs);
     results.push(pageResult);
@@ -429,7 +434,6 @@ async function main() {
       maxPages,
       timeoutMs,
       respectRobots,
-      sameDomainOnly: DEFAULTS.sameDomainOnly,
       maxPagesHardCap: DEFAULTS.maxPagesHardCap
     },
     crawl: {

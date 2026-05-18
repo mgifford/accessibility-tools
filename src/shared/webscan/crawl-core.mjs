@@ -2,8 +2,10 @@ export function canonicalizeUrl(input) {
   try {
     const url = new URL(input);
     url.hash = '';
-    const result = url.toString();
-    return result.endsWith('/') ? result.slice(0, -1) : result;
+    if (url.pathname !== '/' && url.pathname.endsWith('/')) {
+      url.pathname = url.pathname.replace(/\/+$/, '');
+    }
+    return url.toString();
   } catch {
     return null;
   }
