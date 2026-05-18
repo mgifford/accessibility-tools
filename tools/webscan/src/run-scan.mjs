@@ -16,17 +16,22 @@ const DEFAULTS = {
 
 function parseArgs(argv) {
   const args = {};
-  for (let i = 0; i < argv.length; i += 1) {
+  let i = 0;
+  while (i < argv.length) {
     const raw = argv[i];
-    if (!raw.startsWith('--')) continue;
+    if (!raw.startsWith('--')) {
+      i += 1;
+      continue;
+    }
     const key = raw.slice(2);
     const next = argv[i + 1];
     if (!next || next.startsWith('--')) {
       args[key] = 'true';
+      i += 1;
       continue;
     }
     args[key] = next;
-    i += 1;
+    i += 2;
   }
   return args;
 }

@@ -113,7 +113,7 @@ function formatDate(value) {
 async function loadLatestSummary() {
   try {
     const response = await fetch('./data/latest.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('No published summary yet.');
+    if (!response.ok) throw new Error(`Failed to load summary: ${response.status}`);
     const data = await response.json();
 
     latestSummaryEl.innerHTML = `
@@ -133,7 +133,7 @@ async function loadLatestSummary() {
 async function loadHistory() {
   try {
     const response = await fetch('./data/history.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('No history available yet.');
+    if (!response.ok) throw new Error(`Failed to load history: ${response.status}`);
     const data = await response.json();
     const rows = (data.runs || []).slice(0, 20);
 
