@@ -1,0 +1,36 @@
+name: Accessibility scan request
+description: Request a queued website accessibility scan
+labels:
+  - scan-request
+body:
+  - type: input
+    id: target_url
+    attributes:
+      label: Target URL
+      description: URL to scan
+      placeholder: https://example.com
+    validations:
+      required: true
+
+  - type: input
+    id: crawl_depth
+    attributes:
+      label: Crawl depth
+      description: 0-5 depth for same-domain crawl
+      value: '2'
+
+  - type: input
+    id: max_pages
+    attributes:
+      label: Max pages
+      description: 1-100 pages
+      value: '25'
+
+  - type: dropdown
+    id: report_type
+    attributes:
+      label: Report type
+      options:
+        - summary
+        - full
+      default: 0

@@ -1,0 +1,14 @@
+{
+  "name": "@accessibility-tools/webscan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Workflow scanner for GitHub Actions + GitHub Pages",
+  "scripts": {
+    "scan": "node ./src/run-scan.mjs"
+  },
+  "dependencies": {
+    "axe-core": "4.10.2",
+    "playwright": "1.55.1"
+  }
+}
