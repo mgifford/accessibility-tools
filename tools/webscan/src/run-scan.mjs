@@ -56,7 +56,7 @@ function sanitizeTargetUrl(url) {
   return canonicalizeUrl(parsed.toString());
 }
 
-function toInt(value, fallback) {
+function parseIntWithFallback(value, fallback) {
   const n = Number.parseInt(String(value), 10);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -396,9 +396,9 @@ async function main() {
   const outDir = path.resolve(argv.out || './scan-output');
 
   const targetUrl = sanitizeTargetUrl(argv.url || argv.target_url || '');
-  const depth = Math.max(0, Math.min(toInt(argv.depth, DEFAULTS.depth), 5));
-  const maxPages = Math.max(1, Math.min(toInt(argv.max_pages, DEFAULTS.maxPages), DEFAULTS.maxPagesHardCap));
-  const timeoutMs = Math.max(3000, Math.min(toInt(argv.timeout_ms, DEFAULTS.timeoutMs), 60000));
+  const depth = Math.max(0, Math.min(parseIntWithFallback(argv.depth, DEFAULTS.depth), 5));
+  const maxPages = Math.max(1, Math.min(parseIntWithFallback(argv.max_pages, DEFAULTS.maxPages), DEFAULTS.maxPagesHardCap));
+  const timeoutMs = Math.max(3000, Math.min(parseIntWithFallback(argv.timeout_ms, DEFAULTS.timeoutMs), 60000));
   const reportType = argv.report_type || DEFAULTS.reportType;
   const respectRobots = String(argv.respect_robots ?? DEFAULTS.respectRobots) !== 'false';
 
