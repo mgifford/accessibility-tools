@@ -35,6 +35,10 @@ function isValidUrl(url) {
   }
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function setStatus(content, variant = 'info') {
   statusEl.textContent = '';
   statusEl.dataset.variant = variant;
@@ -74,7 +78,7 @@ function clearIssuePoll() {
 }
 
 function getIssueField(body, label) {
-  const re = new RegExp(`###\\s+${label}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s+|$)`, 'i');
+  const re = new RegExp(`###\\s+${escapeRegExp(label)}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s+|$)`, 'i');
   const match = body.match(re);
   return match?.[1]?.trim() || '';
 }
@@ -152,7 +156,7 @@ function watchForCreatedIssue(inputs, startedAt) {
       }
 
       attempt += 1;
-      schedulePoll(Math.min(initialIssuePollIntervalMs * 2 ** attempt, maxIssuePollIntervalMs));
+      schedulePoll(Math.min(initialIssuePollIntervalMs * 2 ** Math.min(attempt, 2), maxIssuePollIntervalMs));
     } catch (error) {
       clearIssuePoll();
       setStatus(error.message, 'error');
@@ -177,16 +181,15 @@ function openIssueQueue() {
   const maxPages = encodeURIComponent(inputs.max_pages);
   const reportType = encodeURIComponent(inputs.report_type);
   const url = `https://github.com/${owner}/${repo}/issues/new?template=scan-request.yml&title=${title}&target_url=${targetUrl}&crawl_depth=${crawlDepth}&max_pages=${maxPages}&report_type=${reportType}`;
-  const issueWindow = window.open(url, '_blank');
+  const issueWindow = window.open('about:blank', '_blank');
 
   if (!issueWindow) {
     setStatus('Allow pop-ups for this page so the GitHub issue form can open.', 'error');
     return;
   }
 
-  if ('opener' in issueWindow) {
-    issueWindow.opener = null;
-  }
+  issueWindow.opener = null;
+  issueWindow.location.replace(url);
 
   watchForCreatedIssue(inputs, Date.now());
 }
