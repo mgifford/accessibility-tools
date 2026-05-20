@@ -12,7 +12,8 @@ const latestSummaryEl = document.getElementById('latest-summary');
 const latestReportLinkEl = document.getElementById('latest-report-link');
 const historyRowsEl = document.getElementById('history-rows');
 const issuesApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
-const issuePollIntervalMs = 5000;
+const initialIssuePollIntervalMs = 4000;
+const maxIssuePollIntervalMs = 15000;
 const issuePollTimeoutMs = 120000;
 let issuePollTimer;
 
@@ -64,8 +65,11 @@ function createStatusFragment(message, link) {
 }
 
 function clearIssuePoll() {
-  window.clearInterval(issuePollTimer);
-  issuePollTimer = undefined;
+  if (issuePollTimer) {
+    window.clearTimeout(issuePollTimer);
+    issuePollTimer = undefined;
+  }
+
   queueBtnEl.disabled = false;
 }
 
@@ -116,6 +120,12 @@ function watchForCreatedIssue(inputs, startedAt) {
   queueBtnEl.disabled = true;
 
   const pollStartedAt = Date.now();
+  let attempt = 0;
+
+  const schedulePoll = (delay) => {
+    issuePollTimer = window.setTimeout(onPoll, delay);
+  };
+
   const onPoll = async () => {
     try {
       const issue = await findCreatedIssue(inputs, startedAt);
@@ -138,7 +148,11 @@ function watchForCreatedIssue(inputs, startedAt) {
           'GitHub issue form opened in a new tab. Once you submit it, refresh this page or check the Issues tab if the success link does not appear automatically.',
           'info'
         );
+        return;
       }
+
+      attempt += 1;
+      schedulePoll(Math.min(initialIssuePollIntervalMs * 2 ** attempt, maxIssuePollIntervalMs));
     } catch (error) {
       clearIssuePoll();
       setStatus(error.message, 'error');
@@ -146,8 +160,7 @@ function watchForCreatedIssue(inputs, startedAt) {
   };
 
   setStatus('GitHub issue form opened in a new tab. Waiting for the new issue to appear…', 'info');
-  onPoll();
-  issuePollTimer = window.setInterval(onPoll, issuePollIntervalMs);
+  schedulePoll(0);
 }
 
 function openIssueQueue() {
@@ -171,9 +184,9 @@ function openIssueQueue() {
     return;
   }
 
-  try {
+  if ('opener' in issueWindow) {
     issueWindow.opener = null;
-  } catch {}
+  }
 
   watchForCreatedIssue(inputs, Date.now());
 }
