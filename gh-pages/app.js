@@ -1,12 +1,10 @@
 const owner = 'mgifford';
 const repo = 'accessibility-tools';
-const workflowId = 'webscan-pages.yml';
 
 const targetUrlEl = document.getElementById('target-url');
 const crawlDepthEl = document.getElementById('crawl-depth');
 const maxPagesEl = document.getElementById('max-pages');
 const reportTypeEl = document.getElementById('report-type');
-const tokenEl = document.getElementById('repo-token');
 const statusEl = document.getElementById('submit-status');
 
 const latestSummaryEl = document.getElementById('latest-summary');
@@ -36,44 +34,6 @@ function setStatus(message, isError = false) {
   statusEl.style.color = isError ? '#c62828' : '';
 }
 
-async function dispatchWorkflow() {
-  const token = tokenEl.value.trim();
-  const inputs = getInputs();
-
-  if (!isValidUrl(inputs.target_url)) {
-    setStatus('Please enter a valid http/https URL.', true);
-    return;
-  }
-  if (!token) {
-    setStatus('A GitHub token is required for direct workflow dispatch.', true);
-    return;
-  }
-
-  setStatus('Dispatching workflow...');
-  const endpoint = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      ref: 'main',
-      inputs
-    })
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    setStatus(`Dispatch failed: ${response.status} ${text}`, true);
-    return;
-  }
-
-  setStatus('Workflow dispatched successfully. Check Actions for status.');
-}
-
 function openIssueQueue() {
   const inputs = getInputs();
 
@@ -83,23 +43,11 @@ function openIssueQueue() {
   }
 
   const title = encodeURIComponent(`Scan request: ${inputs.target_url}`);
-  const body = encodeURIComponent(
-    [
-      '### Target URL',
-      inputs.target_url,
-      '',
-      '### Crawl depth',
-      inputs.crawl_depth,
-      '',
-      '### Max pages',
-      inputs.max_pages,
-      '',
-      '### Report type',
-      inputs.report_type
-    ].join('\n')
-  );
-
-  const url = `https://github.com/${owner}/${repo}/issues/new?labels=scan-request&title=${title}&body=${body}`;
+  const targetUrl = encodeURIComponent(inputs.target_url);
+  const crawlDepth = encodeURIComponent(inputs.crawl_depth);
+  const maxPages = encodeURIComponent(inputs.max_pages);
+  const reportType = encodeURIComponent(inputs.report_type);
+  const url = `https://github.com/${owner}/${repo}/issues/new?template=scan-request.yml&title=${title}&target_url=${targetUrl}&crawl_depth=${crawlDepth}&max_pages=${maxPages}&report_type=${reportType}`;
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
@@ -158,10 +106,6 @@ async function loadHistory() {
     historyRowsEl.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
   }
 }
-
-document.getElementById('dispatch-btn').addEventListener('click', () => {
-  dispatchWorkflow().catch(error => setStatus(error.message, true));
-});
 
 document.getElementById('queue-btn').addEventListener('click', openIssueQueue);
 
