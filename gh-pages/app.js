@@ -164,12 +164,16 @@ function openIssueQueue() {
   const maxPages = encodeURIComponent(inputs.max_pages);
   const reportType = encodeURIComponent(inputs.report_type);
   const url = `https://github.com/${owner}/${repo}/issues/new?template=scan-request.yml&title=${title}&target_url=${targetUrl}&crawl_depth=${crawlDepth}&max_pages=${maxPages}&report_type=${reportType}`;
-  const issueWindow = window.open(url, '_blank', 'noopener,noreferrer');
+  const issueWindow = window.open(url, '_blank');
 
   if (!issueWindow) {
     setStatus('Allow pop-ups for this page so the GitHub issue form can open.', 'error');
     return;
   }
+
+  try {
+    issueWindow.opener = null;
+  } catch {}
 
   watchForCreatedIssue(inputs, Date.now());
 }
