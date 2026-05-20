@@ -84,7 +84,20 @@
 
       .status {
         margin-top: .5rem;
+        padding: .75rem;
         min-height: 1.25rem;
+        border-radius: 8px;
+        background: rgba(127, 127, 127, 0.08);
+      }
+
+      .status[data-variant="success"] {
+        color: #146c2e;
+        background: rgba(20, 108, 46, 0.12);
+      }
+
+      .status[data-variant="error"] {
+        color: #c62828;
+        background: rgba(198, 40, 40, 0.12);
       }
 
       a { color: inherit; }
@@ -126,7 +139,7 @@
           <div class="actions">
             <button id="queue-btn" type="button">Submit scan request</button>
           </div>
-          <div id="submit-status" class="status muted"></div>
+          <div id="submit-status" class="status muted" role="status" aria-live="polite"></div>
         </article>
 
         <article class="card stack">
