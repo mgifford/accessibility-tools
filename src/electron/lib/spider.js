@@ -3,6 +3,7 @@ import axios from 'axios';
 import { BrowserWindow } from 'electron';
 import { parseString } from 'xml2js';
 import { getUrlPartitionString } from './utils';
+import { canonicalizeUrl, isSameHostname } from '../../shared/webscan/crawl-core.mjs';
 
 const ASSET_TYPES = ['image', 'font', 'video', 'media', 'stylesheet', 'websocket'];
 const BLOCKED_URLS = ['doubleclick.net', 'facebook.net', 'js.hs-scripts.com'];
@@ -96,7 +97,10 @@ class Spider {
 
         // Extract URLs from the sitemap
         if (result.urlset && result.urlset.url) {
-          urls = result.urlset.url.map(url => this.#removeEscapedCharacters(url.loc[0]).trim());
+          urls = result.urlset.url
+            .map(url => this.#removeEscapedCharacters(url.loc[0]).trim())
+            .map(url => canonicalizeUrl(url))
+            .filter(url => !!url && isSameHostname(this.initURL, url));
         }
       });
 
@@ -221,7 +225,12 @@ class Spider {
           `
         );
         const pageUrls = this.#sortUrlsByDepth(pageUrlsUnsorted);
-        pageUrls.forEach(url => links.add(url));
+        pageUrls.forEach((url) => {
+          const canonical = canonicalizeUrl(url);
+          if (canonical && isSameHostname(this.initURL, canonical)) {
+            links.add(canonical);
+          }
+        });
       } catch (e) {
         if (window.isDestroyed() && !this.isCompleted) {
           window = this.#createWindow();

@@ -1,0 +1,187 @@
+name: Web Accessibility Scan + Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan'
+        required: true
+        type: string
+      crawl_depth:
+        description: 'Crawl depth (0-5)'
+        required: false
+        default: '2'
+        type: string
+      max_pages:
+        description: 'Max pages to scan (1-100)'
+        required: false
+        default: '25'
+        type: string
+      report_type:
+        description: 'Report level'
+        required: false
+        default: 'summary'
+        type: choice
+        options:
+          - summary
+          - full
+  schedule:
+    - cron: '30 6 * * *'
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  scan-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: resolve
+        run: |
+          set -euo pipefail
+
+          TARGET_URL="${{ github.event.inputs.target_url }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="${{ vars.DEFAULT_SCAN_URL }}"
+          fi
+          if [ -z "$TARGET_URL" ]; then
+            echo "Missing target URL (set workflow input or repo variable DEFAULT_SCAN_URL)." >&2
+            exit 1
+          fi
+
+          CRAWL_DEPTH="${{ github.event.inputs.crawl_depth }}"
+          MAX_PAGES="${{ github.event.inputs.max_pages }}"
+          REPORT_TYPE="${{ github.event.inputs.report_type }}"
+
+          if [ -z "$CRAWL_DEPTH" ]; then CRAWL_DEPTH="2"; fi
+          if [ -z "$MAX_PAGES" ]; then MAX_PAGES="25"; fi
+          if [ -z "$REPORT_TYPE" ]; then REPORT_TYPE="summary"; fi
+
+          echo "target_url=$TARGET_URL" >> "$GITHUB_OUTPUT"
+          echo "crawl_depth=$CRAWL_DEPTH" >> "$GITHUB_OUTPUT"
+          echo "max_pages=$MAX_PAGES" >> "$GITHUB_OUTPUT"
+          echo "report_type=$REPORT_TYPE" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: tools/webscan/package.json
+
+      - name: Install scanner dependencies
+        run: npm --prefix tools/webscan install --no-package-lock
+
+      - name: Install Playwright browser
+        run: npx --yes playwright@1.55.1 install --with-deps chromium
+
+      - name: Run scan
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/webscan-output
+          node tools/webscan/src/run-scan.mjs \
+            --url "${{ steps.resolve.outputs.target_url }}" \
+            --depth "${{ steps.resolve.outputs.crawl_depth }}" \
+            --max_pages "${{ steps.resolve.outputs.max_pages }}" \
+            --report_type "${{ steps.resolve.outputs.report_type }}" \
+            --respect_robots true \
+            --out /tmp/webscan-output
+
+      - name: Prepare Pages content
+        run: |
+          set -euo pipefail
+
+          LATEST_DIR="gh-pages/reports/latest"
+          mkdir -p gh-pages/data "$LATEST_DIR"
+
+          cp /tmp/webscan-output/summary.json gh-pages/data/latest.json
+          cp /tmp/webscan-output/report.html "$LATEST_DIR/report.html"
+          cp /tmp/webscan-output/results.json "$LATEST_DIR/results.json"
+          cp /tmp/webscan-output/summary.json "$LATEST_DIR/summary.json"
+          cp /tmp/webscan-output/urls.json "$LATEST_DIR/urls.json"
+
+      - name: Build history data
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner,
+              repo,
+              event: undefined,
+              per_page: 100
+            });
+
+            const scanRuns = runs
+              .filter(r => r.name === 'Web Accessibility Scan + Pages')
+              .slice(0, 50)
+              .map(r => ({
+                id: r.id,
+                runNumber: r.run_number,
+                status: r.status,
+                conclusion: r.conclusion,
+                event: r.event,
+                createdAt: r.created_at,
+                updatedAt: r.updated_at,
+                htmlUrl: r.html_url,
+                artifactsUrl: r.artifacts_url
+              }));
+
+            const output = {
+              schemaVersion: 1,
+              generatedAt: new Date().toISOString(),
+              workflowName: 'Web Accessibility Scan + Pages',
+              runs: scanRuns
+            };
+
+            const outPath = path.join(process.cwd(), 'gh-pages', 'data', 'history.json');
+            fs.mkdirSync(path.dirname(outPath), { recursive: true });
+            fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
+
+      - name: Upload scan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webscan-${{ github.run_id }}
+          path: /tmp/webscan-output
+          retention-days: 30
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./gh-pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          echo "## Web scan run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: ${{ steps.resolve.outputs.target_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Depth: ${{ steps.resolve.outputs.crawl_depth }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Max pages: ${{ steps.resolve.outputs.max_pages }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Report type: ${{ steps.resolve.outputs.report_type }}" >> "$GITHUB_STEP_SUMMARY"

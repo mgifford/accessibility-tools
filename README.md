@@ -56,13 +56,46 @@ We use **[GitHub Issues](https://github.com/clymio/accessibility-tools/issues)**
 
 For further information on how to use the app, please refer to our **[documentation](https://accessibility-tools.clym.io/)**.
 
-## GitHub Pages
+## GitHub Pages + GitHub Actions scanning
 
-This repository includes a standalone static site in `/gh-pages` that is deployed with GitHub Actions.
+This repository includes a GitHub Pages dashboard in `/gh-pages` and scanning workflows in `.github/workflows`.
+
+### Pages deployment
 
 - Workflow: `.github/workflows/deploy-pages.yml`
 - Deploy trigger: push to `main` (and manual `workflow_dispatch`)
 - Published artifact path: `/gh-pages`
+
+### Web scan workflow
+
+- Workflow: `.github/workflows/webscan-pages.yml`
+- Triggers:
+  - manual (`workflow_dispatch`) with inputs:
+    - `target_url`
+    - `crawl_depth` (0-5)
+    - `max_pages` (1-100)
+    - `report_type` (`summary` or `full`)
+  - scheduled (`cron`)
+- Scanner module: `/tools/webscan`
+- Output:
+  - Pages:
+    - `gh-pages/data/latest.json`
+    - `gh-pages/data/history.json`
+    - `gh-pages/reports/<run_id>/...`
+  - Artifact: `webscan-<run_id>` (30-day retention)
+
+### URL submission paths
+
+1. **Authenticated dispatch**
+   - Open the GitHub Pages dashboard and submit a URL with a GitHub token.
+   - The dashboard calls the workflow dispatch API directly.
+
+2. **Public queue (no token)**
+   - Open a scan request issue using `.github/ISSUE_TEMPLATE/scan-request.yml`.
+   - Queue workflow: `.github/workflows/queue-scan-request.yml`
+   - Issues labeled `scan-request` dispatch `webscan-pages.yml`.
+
+For operational details, see `/docs/github-actions-webscan-runbook.md`.
 
 ## Contributing
 

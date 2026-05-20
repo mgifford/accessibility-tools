@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accessibility Tools</title>
+    <title>Accessibility Tools - Web Scan Dashboard</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -12,53 +12,172 @@
 
       body {
         margin: 0;
-        padding: 2rem;
-        line-height: 1.5;
+        padding: 1.25rem;
+        line-height: 1.45;
       }
 
       main {
-        max-width: 780px;
+        max-width: 1024px;
         margin: 0 auto;
       }
 
-      h1 {
-        margin-top: 0;
+      h1, h2 {
+        margin: 0 0 .5rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       }
 
       .card {
         border: 1px solid rgba(127, 127, 127, 0.35);
         border-radius: 12px;
-        padding: 1rem 1.25rem;
-        margin-top: 1rem;
+        padding: 1rem;
       }
 
-      a {
-        color: inherit;
+      .stack > * + * {
+        margin-top: .75rem;
       }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: .25rem;
+      }
+
+      input, select, button, textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: .6rem;
+        border-radius: 8px;
+        border: 1px solid rgba(127, 127, 127, 0.5);
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: .5rem;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: .92rem;
+      }
+
+      th, td {
+        border: 1px solid rgba(127, 127, 127, 0.4);
+        padding: .45rem;
+        vertical-align: top;
+      }
+
+      .muted {
+        opacity: .8;
+      }
+
+      .status {
+        margin-top: .5rem;
+        min-height: 1.25rem;
+      }
+
+      a { color: inherit; }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Accessibility Tools</h1>
-      <p>
-        This repository now includes a standalone GitHub Pages site deployed with
-        GitHub Actions.
-      </p>
-      <div class="card">
-        <strong>What this is:</strong>
-        <p>
-          A lightweight static project for repository visibility, release links,
-          and basic project information.
+    <main class="stack">
+      <header>
+        <h1>Accessibility Web Scan Dashboard</h1>
+        <p class="muted">
+          Submit URLs, queue scans, and review published results from GitHub Actions.
         </p>
-      </div>
-      <div class="card">
-        <strong>Project repository:</strong>
+      </header>
+
+      <section class="grid">
+        <article class="card stack">
+          <h2>Submit scan request</h2>
+          <div>
+            <label for="target-url">Target URL</label>
+            <input id="target-url" type="url" placeholder="https://example.com" required />
+          </div>
+          <div class="grid">
+            <div>
+              <label for="crawl-depth">Crawl depth (0-5)</label>
+              <input id="crawl-depth" type="number" min="0" max="5" value="2" />
+            </div>
+            <div>
+              <label for="max-pages">Max pages (1-100)</label>
+              <input id="max-pages" type="number" min="1" max="100" value="25" />
+            </div>
+          </div>
+          <div>
+            <label for="report-type">Report type</label>
+            <select id="report-type">
+              <option value="summary">summary</option>
+              <option value="full">full</option>
+            </select>
+          </div>
+          <div>
+            <label for="repo-token">GitHub token (optional for direct dispatch)</label>
+            <input id="repo-token" type="password" placeholder="ghp_..." autocomplete="off" />
+            <div class="muted">Token is used in-browser only and never persisted by this site.</div>
+          </div>
+          <div class="actions">
+            <button id="dispatch-btn" type="button">Dispatch workflow</button>
+            <button id="queue-btn" type="button">Queue via issue</button>
+          </div>
+          <div id="submit-status" class="status muted"></div>
+        </article>
+
+        <article class="card stack">
+          <h2>Latest published summary</h2>
+          <div id="latest-summary" class="muted">Loading...</div>
+          <div>
+            <a id="latest-report-link" href="#">Open latest report JSON</a>
+          </div>
+          <div>
+            <a href="./reports/latest/report.html">Open latest HTML report</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="card stack">
+        <h2>Recent workflow runs</h2>
+        <div class="muted">Data source: <code>gh-pages/data/history.json</code></div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Run #</th>
+                <th>Status</th>
+                <th>Event</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card stack">
+        <h2>Public request path</h2>
         <p>
-          <a href="https://github.com/mgifford/accessibility-tools">
-            github.com/mgifford/accessibility-tools
-          </a>
+          If you do not have a token, use the queued issue flow.
+          Issues labeled <code>scan-request</code> trigger the queue workflow.
         </p>
-      </div>
+        <p>
+          <a href="https://github.com/mgifford/accessibility-tools/issues/new?template=scan-request.yml">Create scan request issue</a>
+        </p>
+      </section>
     </main>
+
+    <script src="./app.js" type="module"></script>
   </body>
 </html>
