@@ -86,14 +86,13 @@ This repository includes a GitHub Pages dashboard in `/gh-pages` and scanning wo
 
 ### URL submission paths
 
-1. **Authenticated dispatch**
-   - Open the GitHub Pages dashboard and submit a URL with a GitHub token.
-   - The dashboard calls the workflow dispatch API directly.
-
-2. **Public queue (no token)**
+1. **Public queue (default)**
    - Open a scan request issue using `.github/ISSUE_TEMPLATE/scan-request.yml`.
    - Queue workflow: `.github/workflows/queue-scan-request.yml`
    - Issues labeled `scan-request` dispatch `webscan-pages.yml`.
+
+2. **Maintainer dispatch (manual)**
+   - Maintainers can still run `webscan-pages.yml` with `workflow_dispatch` from the Actions tab.
 
 For operational details, see `/docs/github-actions-webscan-runbook.md`.
 

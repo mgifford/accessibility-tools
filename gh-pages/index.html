@@ -123,14 +123,8 @@
               <option value="full">full</option>
             </select>
           </div>
-          <div>
-            <label for="repo-token">GitHub token (optional for direct dispatch)</label>
-            <input id="repo-token" type="password" placeholder="ghp_..." autocomplete="off" />
-            <div class="muted">Token is used in-browser only and never persisted by this site.</div>
-          </div>
           <div class="actions">
-            <button id="dispatch-btn" type="button">Dispatch workflow</button>
-            <button id="queue-btn" type="button">Queue via issue</button>
+            <button id="queue-btn" type="button">Submit scan request</button>
           </div>
           <div id="submit-status" class="status muted"></div>
         </article>
@@ -169,7 +163,7 @@
       <section class="card stack">
         <h2>Public request path</h2>
         <p>
-          If you do not have a token, use the queued issue flow.
+          Use the queued issue flow to start scans from this public dashboard.
           Issues labeled <code>scan-request</code> trigger the queue workflow.
         </p>
         <p>

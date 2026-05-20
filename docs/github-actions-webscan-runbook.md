@@ -2,9 +2,9 @@
 
 ## Operating model
 
-- **Mode:** mixed
-  - Authenticated users can dispatch scans directly from the Pages dashboard.
-  - Public users can queue scans via issue requests.
+- **Mode:** queue-first
+  - Public users submit scans through issue requests from the Pages dashboard.
+  - Maintainers can still run manual `workflow_dispatch` scans from the Actions tab.
 - **Execution model:**
   - On-demand scans (`workflow_dispatch`)
   - Scheduled scans (`cron` in `webscan-pages.yml`)
@@ -64,5 +64,4 @@ Artifacts:
 
 - Review scheduled-run success weekly from Actions history.
 - Tune crawl depth/page caps based on runtime and signal quality.
-- Rotate/restrict tokens used for direct dispatch.
 - Review and prune old report folders if changing retention strategy.
