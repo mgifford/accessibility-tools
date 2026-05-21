@@ -9,9 +9,53 @@ permissions:
   issues: write
   actions: write
 
+concurrency:
+  group: queue-scan-request-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
+  ensure-scan-request-label:
+    if: contains(github.event.issue.body || '', '### Target URL') && !contains(github.event.issue.labels.*.name, 'scan-request')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure scan-request label exists and apply it
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue = context.payload.issue;
+
+            try {
+              await github.rest.issues.getLabel({
+                owner,
+                repo,
+                name: 'scan-request'
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: 'scan-request',
+                color: '0e8a16',
+                description: 'Queue a public accessibility scan request'
+              });
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: issue.number,
+              labels: ['scan-request']
+            });
+
   queue-scan:
-    if: contains(github.event.issue.labels.*.name, 'scan-request')
+    if: contains(github.event.issue.body || '', '### Target URL') && contains(github.event.issue.labels.*.name, 'scan-request')
     runs-on: ubuntu-latest
 
     steps:

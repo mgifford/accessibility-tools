@@ -30,7 +30,7 @@ Scanner controls:
   - localhost/local/internal suffixes
   - private IPv4 ranges (10.x, 172.16-31.x, 192.168.x, loopback)
 - Workflow concurrency group: `pages` (serializes Pages deployments).
-- Queue path is label-gated (`scan-request`).
+- Queue requests are detected from the scan issue form body and normalized with the `scan-request` label.
 
 ## Reports and publishing
 
@@ -56,9 +56,10 @@ Artifacts:
 ## Queue operations
 
 1. A user opens an issue from `scan-request.yml`.
-2. `queue-scan-request.yml` validates fields from the issue body.
-3. The workflow dispatches `webscan-pages.yml` with parsed inputs.
-4. The issue receives `scan-queued` label and a tracking comment.
+2. `queue-scan-request.yml` detects the scan request form body and creates/applies the `scan-request` label if needed.
+3. The queue workflow validates fields from the issue body.
+4. The workflow dispatches `webscan-pages.yml` with parsed inputs.
+5. The issue receives `scan-queued` label and a tracking comment.
 
 ## Maintenance tasks
 

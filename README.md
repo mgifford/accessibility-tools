@@ -89,7 +89,7 @@ This repository includes a GitHub Pages dashboard in `/gh-pages` and scanning wo
 1. **Public queue (default)**
    - Open a scan request issue using `.github/ISSUE_TEMPLATE/scan-request.yml`.
    - Queue workflow: `.github/workflows/queue-scan-request.yml`
-   - Issues labeled `scan-request` dispatch `webscan-pages.yml`.
+   - The queue workflow detects scan request issue forms, ensures the `scan-request` label exists, and dispatches `webscan-pages.yml`.
 
 2. **Maintainer dispatch (manual)**
    - Maintainers can still run `webscan-pages.yml` with `workflow_dispatch` from the Actions tab.
