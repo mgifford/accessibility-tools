@@ -34,6 +34,9 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  DEFAULT_SCHEDULE_SCAN_URL: 'https://mgifford.github.io/accessibility-tools/'
+
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -59,8 +62,11 @@ jobs:
           if [ -z "$TARGET_URL" ]; then
             TARGET_URL="${{ vars.DEFAULT_SCAN_URL }}"
           fi
+          if [ -z "$TARGET_URL" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            TARGET_URL="${{ env.DEFAULT_SCHEDULE_SCAN_URL }}"
+          fi
           if [ -z "$TARGET_URL" ]; then
-            echo "Missing target URL (set workflow input or repo variable DEFAULT_SCAN_URL)." >&2
+            echo "Missing target URL (set workflow input, repo variable DEFAULT_SCAN_URL, or workflow env DEFAULT_SCHEDULE_SCAN_URL)." >&2
             exit 1
           fi
 
