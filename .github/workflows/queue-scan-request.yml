@@ -137,6 +137,7 @@ jobs:
                   workflow_id: 'webscan-pages.yml',
                   ref: context.payload.repository.default_branch,
                   inputs: {
+                    issue_number: String(currentIssueNumber),
                     target_url: targetUrl,
                     crawl_depth: crawlDepth,
                     max_pages: maxPages,

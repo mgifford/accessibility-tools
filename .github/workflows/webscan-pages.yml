@@ -3,6 +3,10 @@ name: Web Accessibility Scan + Pages
 on:
   workflow_dispatch:
     inputs:
+      issue_number:
+        description: 'Originating scan request issue number'
+        required: false
+        type: string
       target_url:
         description: 'Target URL to scan'
         required: true
@@ -31,6 +35,7 @@ on:
 permissions:
   contents: read
   actions: read
+  issues: write
   pages: write
   id-token: write
 
@@ -73,6 +78,7 @@ jobs:
           CRAWL_DEPTH="${{ github.event.inputs.crawl_depth }}"
           MAX_PAGES="${{ github.event.inputs.max_pages }}"
           REPORT_TYPE="${{ github.event.inputs.report_type }}"
+          ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
 
           if [ -z "$CRAWL_DEPTH" ]; then CRAWL_DEPTH="2"; fi
           if [ -z "$MAX_PAGES" ]; then MAX_PAGES="25"; fi
@@ -82,6 +88,7 @@ jobs:
           echo "crawl_depth=$CRAWL_DEPTH" >> "$GITHUB_OUTPUT"
           echo "max_pages=$MAX_PAGES" >> "$GITHUB_OUTPUT"
           echo "report_type=$REPORT_TYPE" >> "$GITHUB_OUTPUT"
+          echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -113,13 +120,13 @@ jobs:
           set -euo pipefail
 
           LATEST_DIR="gh-pages/reports/latest"
-          mkdir -p gh-pages/data "$LATEST_DIR"
+          RUN_DIR="gh-pages/reports/${{ github.run_id }}"
+          mkdir -p gh-pages/data "$LATEST_DIR" "$RUN_DIR"
 
           cp /tmp/webscan-output/summary.json gh-pages/data/latest.json
-          cp /tmp/webscan-output/report.html "$LATEST_DIR/report.html"
-          cp /tmp/webscan-output/results.json "$LATEST_DIR/results.json"
-          cp /tmp/webscan-output/summary.json "$LATEST_DIR/summary.json"
-          cp /tmp/webscan-output/urls.json "$LATEST_DIR/urls.json"
+          cp -R /tmp/webscan-output/. "$RUN_DIR/"
+          rm -rf "$LATEST_DIR"/*
+          cp -R /tmp/webscan-output/. "$LATEST_DIR/"
 
       - name: Build history data
         uses: actions/github-script@v7
@@ -182,6 +189,75 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Comment and close scan request issue
+        if: ${{ steps.resolve.outputs.issue_number != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = Number.parseInt(`${{ steps.resolve.outputs.issue_number }}`, 10);
+            if (!Number.isFinite(issueNumber) || issueNumber <= 0) {
+              core.warning(`Skipping issue close: invalid issue number "${{ steps.resolve.outputs.issue_number }}"`);
+              return;
+            }
+
+            const pageUrlRaw = `${{ steps.deployment.outputs.page_url }}`.trim();
+            const pageUrl = pageUrlRaw
+              ? (pageUrlRaw.endsWith('/') ? pageUrlRaw : `${pageUrlRaw}/`)
+              : `https://${owner}.github.io/${repo}/`;
+            const runReportUrl = `${pageUrl}reports/${context.runId}/report.html`;
+            const latestReportUrl = `${pageUrl}reports/latest/report.html`;
+            const latestSummaryUrl = `${pageUrl}data/latest.json`;
+
+            const { data: issue } = await github.rest.issues.get({
+              owner,
+              repo,
+              issue_number: issueNumber
+            });
+
+            const issueLabels = new Set((issue.labels || []).map(label => label.name));
+            if (!issueLabels.has('scan-request')) {
+              core.warning(`Issue #${issueNumber} is not labeled scan-request; skipping close.`);
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: [
+                '✅ Scan complete.',
+                '',
+                `- Latest HTML report: ${latestReportUrl}`,
+                `- Run HTML report: ${runReportUrl}`,
+                `- Latest summary JSON: ${latestSummaryUrl}`,
+                `- Workflow run: ${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`
+              ].join('\n')
+            });
+
+            if (issueLabels.has('scan-queued')) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  name: 'scan-queued'
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+            if (issue.state !== 'closed') {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                state: 'closed'
+              });
+            }
 
       - name: Workflow summary
         if: always()
