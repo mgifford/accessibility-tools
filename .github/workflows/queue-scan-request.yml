@@ -39,7 +39,7 @@ jobs:
                 });
               } catch (error) {
                 if (error.status !== 404) {
-                  console.error('Failed to check whether the scan-request label exists:', error);
+                  console.error('Failed to check if the scan-request label exists:', error);
                   throw error;
                 }
 
@@ -61,7 +61,7 @@ jobs:
 
             const body = issue.body || '';
             const labels = new Set((issue.labels || []).map(label => label.name));
-            const scanRequestSectionPattern = /###\s+Target URL\s*(?:\r?\n)+/i;
+            const scanRequestSectionPattern = /###\s+Target URL\b/i;
             const isScanRequest = scanRequestSectionPattern.test(body);
 
             if (!isScanRequest) {
