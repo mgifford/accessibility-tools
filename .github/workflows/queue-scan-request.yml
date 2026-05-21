@@ -72,7 +72,7 @@ jobs:
               await github.rest.issues.addLabels({
                 owner,
                 repo,
-                issue_number: issue.number,
+                issue_number: issueNumber,
                 labels: [process.env.SCAN_REQUEST_LABEL]
               });
             }
@@ -98,7 +98,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner,
                 repo,
-                issue_number: issue.number,
+                issue_number: issueNumber,
                 body: 'Could not queue scan: missing **Target URL** in issue body.'
               });
               return;
@@ -120,13 +120,13 @@ jobs:
             await github.rest.issues.addLabels({
               owner,
               repo,
-              issue_number: issue.number,
+              issue_number: issueNumber,
               labels: [process.env.SCAN_QUEUED_LABEL]
             });
 
             await github.rest.issues.createComment({
               owner,
               repo,
-              issue_number: issue.number,
+              issue_number: issueNumber,
               body: `Scan request queued. Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
             });
