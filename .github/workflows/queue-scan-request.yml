@@ -10,7 +10,6 @@ permissions:
   actions: write
 
 env:
-  SCAN_REQUEST_BODY_MARKER: '### Target URL'
   SCAN_REQUEST_LABEL: scan-request
   SCAN_QUEUED_LABEL: scan-queued
 
@@ -20,7 +19,7 @@ concurrency:
 
 jobs:
   queue-scan:
-    if: contains(github.event.issue.body || '', env.SCAN_REQUEST_BODY_MARKER)
+    if: contains(github.event.issue.body || '', '### Target URL')
     runs-on: ubuntu-latest
 
     steps:
