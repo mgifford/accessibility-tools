@@ -19,7 +19,6 @@ concurrency:
 
 jobs:
   queue-scan:
-    if: contains(github.event.issue.body || '', '### Target URL')
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +39,7 @@ jobs:
                 });
               } catch (error) {
                 if (error.status !== 404) {
+                  console.error('Failed to verify scan-request label:', error);
                   throw error;
                 }
 
@@ -61,6 +61,11 @@ jobs:
 
             const body = issue.body || '';
             const labels = new Set((issue.labels || []).map(label => label.name));
+            const isScanRequest = /###\s+Target URL\s*\n/i.test(body);
+
+            if (!isScanRequest) {
+              return;
+            }
 
             if (labels.has(process.env.SCAN_QUEUED_LABEL)) {
               return;
