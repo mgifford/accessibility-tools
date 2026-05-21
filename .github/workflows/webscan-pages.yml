@@ -126,7 +126,7 @@ jobs:
           cp /tmp/webscan-output/summary.json gh-pages/data/latest.json
           cp -R /tmp/webscan-output/. "$RUN_DIR/"
           rm -rf "$LATEST_DIR"/*
-          cp -R /tmp/webscan-output/. "$LATEST_DIR/"
+          cp -R "$RUN_DIR"/. "$LATEST_DIR/"
 
       - name: Build history data
         uses: actions/github-script@v7
