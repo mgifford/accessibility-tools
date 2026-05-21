@@ -1,6 +1,9 @@
 name: Queue Scan Request
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
   issues:
     types: [opened, edited, labeled]
 
@@ -28,7 +31,6 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issueNumber = context.payload.issue.number;
 
             const ensureScanRequestLabel = async () => {
               try {
@@ -53,86 +55,109 @@ jobs:
               }
             };
 
-            const { data: issue } = await github.rest.issues.get({
-              owner,
-              repo,
-              issue_number: issueNumber
-            });
-
-            const body = issue.body || '';
-            const labels = new Set((issue.labels || []).map(label => label.name));
-            const scanRequestSectionPattern = /###\s+Target URL\b/i;
-            const isScanRequest = scanRequestSectionPattern.test(body);
-
-            if (!isScanRequest) {
-              return;
-            }
-
-            if (labels.has(process.env.SCAN_QUEUED_LABEL)) {
-              return;
-            }
-
             await ensureScanRequestLabel();
 
-            if (!labels.has(process.env.SCAN_REQUEST_LABEL)) {
-              await github.rest.issues.addLabels({
+            const triggeredIssueNumber = context.payload.issue?.number;
+            const issueNumbers = [];
+            if (triggeredIssueNumber) {
+              issueNumbers.push(triggeredIssueNumber);
+            } else {
+              const openScanRequestIssues = await github.paginate(github.rest.issues.listForRepo, {
                 owner,
                 repo,
-                issue_number: issueNumber,
-                labels: [process.env.SCAN_REQUEST_LABEL]
+                state: 'open',
+                labels: process.env.SCAN_REQUEST_LABEL,
+                per_page: 100
               });
-            }
-
-            const getField = (label) => {
-              const re = new RegExp(`###\\s+${label}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s+|$)`, 'i');
-              const match = body.match(re);
-              return match?.[1]?.trim() || '';
-            };
-
-            const targetUrl = getField('Target URL');
-            const clamp = (value, min, max, fallback) => {
-              const n = Number.parseInt(String(value), 10);
-              if (!Number.isFinite(n)) return String(fallback);
-              return String(Math.max(min, Math.min(max, n)));
-            };
-
-            const crawlDepth = clamp(getField('Crawl depth'), 0, 5, 2);
-            const maxPages = clamp(getField('Max pages'), 1, 100, 25);
-            const reportType = getField('Report type') || 'summary';
-
-            if (!targetUrl) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                body: 'Could not queue scan: missing **Target URL** in issue body.'
-              });
-              return;
-            }
-
-            await github.rest.actions.createWorkflowDispatch({
-              owner,
-              repo,
-              workflow_id: 'webscan-pages.yml',
-              ref: context.payload.repository.default_branch,
-              inputs: {
-                target_url: targetUrl,
-                crawl_depth: crawlDepth,
-                max_pages: maxPages,
-                report_type: reportType
+              for (const issue of openScanRequestIssues) {
+                if (!issue.pull_request) issueNumbers.push(issue.number);
               }
-            });
+            }
 
-            await github.rest.issues.addLabels({
-              owner,
-              repo,
-              issue_number: issueNumber,
-              labels: [process.env.SCAN_QUEUED_LABEL]
-            });
+            for (const currentIssueNumber of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner,
+                  repo,
+                  issue_number: currentIssueNumber
+                });
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: issueNumber,
-              body: `Scan request queued. Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
-            });
+                const body = issue.body || '';
+                const labels = new Set((issue.labels || []).map(label => label.name));
+                const scanRequestSectionPattern = /###\s+Target URL\b/i;
+                const isScanRequest = scanRequestSectionPattern.test(body);
+
+                if (!isScanRequest) {
+                  continue;
+                }
+
+                if (labels.has(process.env.SCAN_QUEUED_LABEL)) {
+                  continue;
+                }
+
+                if (!labels.has(process.env.SCAN_REQUEST_LABEL)) {
+                  await github.rest.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: currentIssueNumber,
+                    labels: [process.env.SCAN_REQUEST_LABEL]
+                  });
+                }
+
+                const getField = (label) => {
+                  const re = new RegExp(`###\\s+${label}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s+|$)`, 'i');
+                  const match = body.match(re);
+                  return match?.[1]?.trim() || '';
+                };
+
+                const targetUrl = getField('Target URL');
+                const clamp = (value, min, max, fallback) => {
+                  const n = Number.parseInt(String(value), 10);
+                  if (!Number.isFinite(n)) return String(fallback);
+                  return String(Math.max(min, Math.min(max, n)));
+                };
+
+                const crawlDepth = clamp(getField('Crawl depth'), 0, 5, 2);
+                const maxPages = clamp(getField('Max pages'), 1, 100, 25);
+                const reportType = getField('Report type') || 'summary';
+
+                if (!targetUrl) {
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: currentIssueNumber,
+                    body: 'Could not queue scan: missing **Target URL** in issue body.'
+                  });
+                  continue;
+                }
+
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'webscan-pages.yml',
+                  ref: context.payload.repository.default_branch,
+                  inputs: {
+                    target_url: targetUrl,
+                    crawl_depth: crawlDepth,
+                    max_pages: maxPages,
+                    report_type: reportType
+                  }
+                });
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: currentIssueNumber,
+                  body: `Scan request queued. Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
+                });
+
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: currentIssueNumber,
+                  labels: [process.env.SCAN_QUEUED_LABEL]
+                });
+              } catch (error) {
+                core.warning(`Failed to process scan request issue #${currentIssueNumber}: ${error.message}`);
+              }
+            }
