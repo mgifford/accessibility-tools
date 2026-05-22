@@ -24,6 +24,66 @@ Thank you for considering contributing! We welcome all contributions, including 
 
 - **Small, Focused changes**: Keep PRs focused on a single topic. Smaller PRs are easier to review
 - **Documentation**: Update the README or any of the other docs if your changes setup, usage or architecture
+- **Spec-Kitty-Driven Development**: We are moving to spec-kitty-driven development. For more information and best practices, see [https://docs.spec-kitty.ai/](https://docs.spec-kitty.ai/)
+
+## Project Constitution and Governance
+
+All contributions must align with the project's core principles. See **[CONSTITUTION.md](CONSTITUTION.md)** for:
+
+- **Seven Core Principles**: Focused, Secure, Accessible, Self-Correcting, Sustainable, Energy Conservative, Reliable
+- **Specification Requirements**: How new features are specified and validated
+- **Review Checklist**: Seven-point evaluation framework for PRs
+- **Decision-Making Process**: How architectural and feature decisions are made
+
+### Architecture Decision Records (ADRs)
+
+Significant technical and architectural decisions are documented in **[docs/adr/](docs/adr/)**.
+
+**For Contributors:**
+- Familiarize yourself with existing ADRs to understand *why* the system is structured as it is
+- For major changes, propose a new ADR (see [docs/adr/README.md](docs/adr/README.md) for template)
+- Reference relevant ADRs in PR descriptions and code comments
+- When reviewing PRs, check alignment with Constitution principles
+
+**Examples of decisions that warrant ADRs:**
+- Introducing a new technology or major dependency
+- Changing the database schema or persistence strategy
+- Major architectural refactors
+- Security or accessibility policy changes
+- Performance or reliability requirements
+
+### API Specifications
+
+The Accessibility Tools API is fully documented in **[docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md)** with comprehensive IPC channel references.
+
+**For contributors working on IPC channels:**
+
+1. **Understand the API Architecture** — See [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md) for overview
+2. **Check Existing Channels** — See [docs/IPC_CHANNELS_QUICK_REFERENCE.md](docs/IPC_CHANNELS_QUICK_REFERENCE.md) for quick lookup
+3. **When Adding a New Channel**:
+   - Follow naming convention: `module.action` (e.g., `project.create`)
+   - Implement handler in `/src/electron/actions/`
+   - Define request/response contracts with TypeScript interfaces (or JSDoc types)
+   - Update [docs/IPC_SPECIFICATION.md](docs/IPC_SPECIFICATION.md) with channel documentation
+   - Add error case tests
+   - Update [docs/IPC_CHANNELS.json](docs/IPC_CHANNELS.json)
+   - Ensure security validation (input sanitization, permission checks)
+   - Reference appropriate ADRs or create new ADR if establishing a new pattern
+
+4. **When Modifying an Existing Channel**:
+   - Consider backward compatibility (can you add optional params instead of breaking signature?)
+   - Update API specification documentation
+   - Create an ADR if it's a breaking change (explains migration path)
+   - Update related tests and error handling
+
+5. **Error Handling** — All handlers must follow the standard error contract:
+   ```javascript
+   // Success
+   { success: true, data: { /* result */ } }
+   
+   // Error
+   { success: false, error: { code: "ERROR_CODE", message: "...", details: {...} } }
+   ```
 
 ## Database Changes
 

@@ -1,0 +1,965 @@
+{
+  "metadata": {
+    "title": "Accessibility Tools - Electron IPC API",
+    "version": "1.2.0",
+    "generated": "2026-05-22",
+    "description": "Complete Electron IPC channel specification for Accessibility Tools desktop application",
+    "totalChannels": 115,
+    "architecture": {
+      "framework": "Electron",
+      "version": "38.2.0",
+      "ui": "Next.js 14.2.31 + React 18",
+      "backend": "Node.js + Sequelize ORM",
+      "database": "SQLite"
+    }
+  },
+  "modules": {
+    "system": {
+      "description": "System-level operations and application lifecycle",
+      "file": "src/electron/main/index.js",
+      "channels": {
+        "system:exit": {
+          "type": "handle",
+          "async": false,
+          "parameters": "none",
+          "returns": "N/A",
+          "description": "Gracefully exit the application",
+          "preloadMethod": "window.system.exit()"
+        },
+        "system:acceptEula": {
+          "type": "handle",
+          "async": true,
+          "parameters": "none",
+          "returns": "N/A",
+          "description": "Mark EULA as accepted and rebuild main window",
+          "preloadMethod": "window.system.acceptEula()"
+        },
+        "system:getAssetsPath": {
+          "type": "handle",
+          "async": false,
+          "parameters": "none",
+          "returns": "string",
+          "description": "Get path to assets directory (/assets in dev, app:// in prod)",
+          "preloadMethod": "window.system.getAssetsPath()",
+          "examples": "/assets or app://"
+        },
+        "system:error": {
+          "type": "on",
+          "async": false,
+          "parameters": "(message: string, opt?: {title?: string})",
+          "returns": "N/A",
+          "description": "Display error dialog to user (event listener, fire-and-forget)",
+          "preloadMethod": "window.system.showError(message, opt)"
+        },
+        "log:info": {
+          "type": "on",
+          "async": false,
+          "parameters": "(message: string)",
+          "returns": "N/A",
+          "description": "Log info message to electron-log",
+          "preloadMethod": "window.system.log.info(message)"
+        },
+        "log:error": {
+          "type": "on",
+          "async": false,
+          "parameters": "(error: Error)",
+          "returns": "N/A",
+          "description": "Log error to electron-log with stack trace",
+          "preloadMethod": "window.system.log.error(error)"
+        },
+        "log:rejection": {
+          "type": "on",
+          "async": false,
+          "parameters": "(reason: any)",
+          "returns": "N/A",
+          "description": "Log unhandled promise rejection",
+          "preloadMethod": "window.system.log.rejection(reason)"
+        }
+      }
+    },
+    "navigation": {
+      "description": "Navigation events and window interactions",
+      "file": "src/electron/main/index.js",
+      "channels": {
+        "navigate": {
+          "type": "listener",
+          "async": false,
+          "parameters": "(callback: (url: string) => void)",
+          "returns": "() => void (unsubscribe function)",
+          "description": "Subscribe to main window navigation events",
+          "preloadMethod": "window.api.global.onNavigate(callback)"
+        },
+        "webview:navigate": {
+          "type": "send",
+          "async": false,
+          "parameters": "(url: string)",
+          "returns": "N/A",
+          "description": "Broadcast webview navigation events to main window",
+          "preloadMethod": "window.api.webview.onNavigate(callback)"
+        }
+      }
+    },
+    "theme": {
+      "description": "Application theme and appearance management",
+      "file": "src/electron/actions/theme.js",
+      "channels": {
+        "theme:set": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(value: 'light' | 'dark')",
+          "returns": "'light' | 'dark' | 'system'",
+          "description": "Set application theme",
+          "preloadMethod": "window.api.theme.set(value)"
+        },
+        "theme:current": {
+          "type": "handle",
+          "async": false,
+          "parameters": "none",
+          "returns": "'light' | 'dark' | 'system'",
+          "description": "Get current theme setting",
+          "preloadMethod": "window.api.theme.current()"
+        },
+        "theme:system": {
+          "type": "on",
+          "async": false,
+          "parameters": "none",
+          "returns": "N/A",
+          "description": "Set theme to follow system preference (event listener)",
+          "preloadMethod": "window.api.theme.setToSystem()"
+        }
+      }
+    },
+    "project": {
+      "description": "Project CRUD operations and management",
+      "file": "src/electron/actions/project.js",
+      "channels": {
+        "project:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data?: any, opt?: any)",
+          "returns": "Project[]",
+          "description": "Query projects with optional filters and pagination"
+        },
+        "project:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Project",
+          "description": "Read single project by ID"
+        },
+        "project:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {name: string, ...}, opt?: any)",
+          "returns": "Project",
+          "description": "Create new project"
+        },
+        "project:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Project",
+          "description": "Update existing project"
+        },
+        "project:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete project by ID"
+        }
+      }
+    },
+    "environment": {
+      "description": "Test environment configuration, sitemaps, and DNS operations",
+      "file": "src/electron/actions/environment.js",
+      "channels": {
+        "environment:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(id: number)",
+          "returns": "Environment[]",
+          "description": "Find all environments for project"
+        },
+        "environment:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Environment",
+          "description": "Read single environment"
+        },
+        "environment:create": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {projectId: number, name: string, url: string, ...}, opt?: any)",
+          "returns": "Environment",
+          "description": "Create new environment"
+        },
+        "environment:update": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Environment",
+          "description": "Update environment configuration"
+        },
+        "environment:delete": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete environment"
+        },
+        "environment:generate-sitemap": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentId: number, startUrl: string, crawlDepth: number, ...}, opt?: any)",
+          "returns": "Sitemap",
+          "description": "Generate sitemap by crawling URLs",
+          "notes": "Can be slow - show loading indicator"
+        },
+        "environment:dns-lookup": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {domain: string}, opt?: any)",
+          "returns": "DNSResult",
+          "description": "Perform DNS lookup on domain"
+        },
+        "environment:get-sitemap": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {environmentId: number}, opt?: any)",
+          "returns": "Sitemap",
+          "description": "Retrieve existing sitemap"
+        },
+        "environment:create-page": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {environmentId: number, url: string, title: string, ...}, opt?: any)",
+          "returns": "Page",
+          "description": "Create new test page"
+        }
+      }
+    },
+    "environmentTest": {
+      "description": "Test execution, management, and reporting for environments",
+      "file": "src/electron/actions/environmentTest.js",
+      "channels": {
+        "environmentTest:find": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "EnvironmentTest[]",
+          "description": "Query all tests for environment"
+        },
+        "environmentTest:read": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "EnvironmentTest",
+          "description": "Read single test"
+        },
+        "environmentTest:create": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentId: number, testName: string, ...}, opt?: any)",
+          "returns": "EnvironmentTest",
+          "description": "Create new environment test"
+        },
+        "environmentTest:update": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "EnvironmentTest",
+          "description": "Update test metadata"
+        },
+        "environmentTest:startTest": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "StartTestResult",
+          "description": "Initialize and start test session",
+          "notes": "Can be slow - show loading indicator"
+        },
+        "environmentTest:closeTest": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "CloseTestResult",
+          "description": "Finalize and close test session"
+        },
+        "environmentTest:openClosedTest": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "EnvironmentTest",
+          "description": "Reopen a previously closed test"
+        },
+        "environmentTest:getSitemap": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Sitemap",
+          "description": "Get test's page structure/sitemap"
+        },
+        "environmentTest:getStats": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Stats",
+          "description": "Get test summary statistics"
+        },
+        "environmentTest:generateReport": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "{success: boolean, message?: string}",
+          "description": "Generate and save test report as PDF",
+          "notes": "Shows file dialog, user selects location"
+        },
+        "environmentTest:onTestCompleted": {
+          "type": "listener",
+          "async": false,
+          "parameters": "(callback: (result: any) => void)",
+          "returns": "() => void (unsubscribe)",
+          "description": "Subscribe to test completion events"
+        },
+        "environmentTest:generateOccurrenceData": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Result",
+          "description": "Generate test occurrence/result data"
+        },
+        "environmentTest:hasOccurrenceData": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "boolean",
+          "description": "Check if test has occurrence data"
+        },
+        "environmentTest:addPage": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, pageUrl: string, ...}, opt?: any)",
+          "returns": "Page",
+          "description": "Add new page to active test"
+        },
+        "environmentTest:rescanSitemap": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Sitemap",
+          "description": "Refresh/recrawl environment pages"
+        }
+      }
+    },
+    "environmentPage": {
+      "description": "Per-page testing operations during environment tests",
+      "file": "src/electron/actions/environmentPage.js",
+      "channels": {
+        "environmentPage:scanPage": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentTestId: number, pageUrl: string, ...}, opt?: any)",
+          "returns": "ScanResult",
+          "description": "Run accessibility scan on specific page"
+        },
+        "environmentPage:findTestCases": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentTestId: number, pageId: number, ...}, opt?: any)",
+          "returns": "TestCase[]",
+          "description": "Get applicable test cases for page"
+        },
+        "environmentPage:findTestCaseNodes": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {testCaseId: number, pageUrl: string, ...}, opt?: any)",
+          "returns": "DOMNode[]",
+          "description": "Find DOM nodes matching test case"
+        },
+        "environmentPage:readTestCase": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {testCaseId: number}, opt?: any)",
+          "returns": "TestCaseDetails",
+          "description": "Read complete test case definition"
+        },
+        "environmentPage:findEnvironmentTest": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentTestId: number}, opt?: any)",
+          "returns": "EnvironmentTest",
+          "description": "Get current environment test context"
+        },
+        "environmentPage:updateEnvironmentTestTarget": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentTestId: number, pageId: number, testCaseId: number, status: string, ...}, opt?: any)",
+          "returns": "Result",
+          "description": "Update test result for specific page/test"
+        },
+        "environmentPage:generateReport": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {environmentTestId: number, is_remediation_report?: boolean, ...}, opt?: any)",
+          "returns": "{success: boolean, message?: string}",
+          "description": "Generate page results CSV report",
+          "notes": "Shows file dialog"
+        },
+        "environmentPage:onTestCompleted": {
+          "type": "listener",
+          "async": false,
+          "parameters": "(callback: (result: any) => void)",
+          "returns": "() => void (unsubscribe)",
+          "description": "Subscribe to page test completion events"
+        }
+      }
+    },
+    "testCase": {
+      "description": "Accessibility test case definitions (133 total: 36 auto, 97 manual)",
+      "file": "src/electron/actions/testCase.js",
+      "channels": {
+        "testCase:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "TestCase[]",
+          "description": "Query test cases with filters"
+        },
+        "testCase:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "TestCase",
+          "description": "Read test case definition"
+        },
+        "testCase:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {name: string, description: string, type: string, ...}, opt?: any)",
+          "returns": "TestCase",
+          "description": "Create custom test case"
+        },
+        "testCase:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "TestCase",
+          "description": "Update test case definition"
+        },
+        "testCase:updateIsSelected": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, isSelected: boolean}, opt?: any)",
+          "returns": "Result",
+          "description": "Toggle test case selection"
+        },
+        "testCase:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete custom test case"
+        }
+      }
+    },
+    "testPage": {
+      "description": "Low-level page scanning and axe-core integration",
+      "file": "src/electron/actions/testPage.js",
+      "channels": {
+        "test:getScript": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(forwarded to axecore lib)",
+          "returns": "string",
+          "description": "Get axe-core injection script"
+        },
+        "test:runScript": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(forwarded to axecore lib)",
+          "returns": "ExecutionResult",
+          "description": "Run axe-core scan on page"
+        },
+        "test:handleResult": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: AxeResult)",
+          "returns": "ProcessedResult",
+          "description": "Process raw axe-core results"
+        }
+      }
+    },
+    "systemStandard": {
+      "description": "Accessibility standards (WCAG, ATAG, VPAT) definition hierarchy",
+      "file": "src/electron/actions/systemStandard.js",
+      "channels": {
+        "systemStandard:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Standard[]",
+          "description": "Query available standards"
+        },
+        "systemStandard:findVersions": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {standardId: number}, opt?: any)",
+          "returns": "Version[]",
+          "description": "Get standard versions (e.g., WCAG 2.1, 2.2)"
+        },
+        "systemStandard:findPrinciples": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {standardId: number, versionId: number}, opt?: any)",
+          "returns": "Principle[]",
+          "description": "Get principles (Perceivable, Operable, etc.)"
+        },
+        "systemStandard:findGuidelines": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {principleId: number}, opt?: any)",
+          "returns": "Guideline[]",
+          "description": "Get guidelines under principle"
+        },
+        "systemStandard:findCriteria": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {guidelineId: number}, opt?: any)",
+          "returns": "Criterion[]",
+          "description": "Get success criteria for guideline"
+        }
+      }
+    },
+    "technology": {
+      "description": "Technology/browser definition management",
+      "file": "src/electron/actions/technology.js",
+      "channels": {
+        "technology:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Technology[]",
+          "description": "Query available technologies"
+        },
+        "technology:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Technology",
+          "description": "Read technology definition"
+        },
+        "technology:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {name: string, version: string, ...}, opt?: any)",
+          "returns": "Technology",
+          "description": "Create new technology entry"
+        },
+        "technology:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Technology",
+          "description": "Update technology definition"
+        },
+        "technology:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete technology entry"
+        }
+      }
+    },
+    "remediation": {
+      "description": "Remediation catalog (319 built-in records)",
+      "file": "src/electron/actions/remediation.js",
+      "channels": {
+        "remediation:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Remediation[]",
+          "description": "Query remediation catalog"
+        },
+        "remediation:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Remediation",
+          "description": "Read remediation details"
+        },
+        "remediation:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {title: string, description: string, ...}, opt?: any)",
+          "returns": "Remediation",
+          "description": "Create custom remediation"
+        },
+        "remediation:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Remediation",
+          "description": "Update remediation record"
+        },
+        "remediation:updateIsSelected": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, isSelected: boolean}, opt?: any)",
+          "returns": "Result",
+          "description": "Toggle remediation selection"
+        },
+        "remediation:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete remediation entry"
+        }
+      }
+    },
+    "systemCategory": {
+      "description": "Accessibility issue category management",
+      "file": "src/electron/actions/systemCategory.js",
+      "channels": {
+        "systemCategory:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Category[]",
+          "description": "Query issue categories"
+        },
+        "systemCategory:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Category",
+          "description": "Read category definition"
+        },
+        "systemCategory:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {name: string, ...}, opt?: any)",
+          "returns": "Category",
+          "description": "Create new category"
+        },
+        "systemCategory:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Category",
+          "description": "Update category"
+        },
+        "systemCategory:updateIsSelected": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, isSelected: boolean}, opt?: any)",
+          "returns": "Result",
+          "description": "Toggle category selection"
+        },
+        "systemCategory:updatePriority": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, priority: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Update category priority"
+        },
+        "systemCategory:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete category"
+        }
+      }
+    },
+    "systemEnvironment": {
+      "description": "Test environment type definitions",
+      "file": "src/electron/actions/systemEnvironment.js",
+      "channels": {
+        "systemEnvironment:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "EnvironmentType[]",
+          "description": "Query environment type definitions"
+        },
+        "systemEnvironment:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "EnvironmentType",
+          "description": "Read environment type"
+        },
+        "systemEnvironment:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {name: string, ...}, opt?: any)",
+          "returns": "EnvironmentType",
+          "description": "Create environment type"
+        },
+        "systemEnvironment:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "EnvironmentType",
+          "description": "Update environment type"
+        },
+        "systemEnvironment:updateIsSelected": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, isSelected: boolean}, opt?: any)",
+          "returns": "Result",
+          "description": "Toggle environment type selection"
+        },
+        "systemEnvironment:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete environment type"
+        }
+      }
+    },
+    "accessibilitySettings": {
+      "description": "User accessibility preferences and settings",
+      "file": "src/electron/actions/accessibilitySettings.js",
+      "channels": {
+        "accessibilitySettings:read": {
+          "type": "handle",
+          "async": true,
+          "parameters": "none",
+          "returns": "Settings",
+          "description": "Read current accessibility settings"
+        },
+        "accessibilitySettings:update": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {[key: string]: any})",
+          "returns": "Settings",
+          "description": "Update accessibility settings"
+        },
+        "accessibilitySettings:reset": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: any)",
+          "returns": "Result",
+          "description": "Reset settings to defaults"
+        }
+      }
+    },
+    "pageScripts": {
+      "description": "Dynamic page script injection for focus/selection testing",
+      "file": "src/electron/actions/pageScripts.js",
+      "channels": {
+        "pageScripts:getFocusScript": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "string",
+          "description": "Get focus highlight injection script"
+        },
+        "pageScripts:getRemoveFocusScript": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "string",
+          "description": "Get focus highlight removal script"
+        }
+      }
+    },
+    "audit": {
+      "description": "Formal audit management (WCAG-EM, ATAG, VPAT)",
+      "file": "src/electron/actions/audit.js",
+      "channels": {
+        "audit:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Audit[]",
+          "description": "Query audits"
+        },
+        "audit:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Audit",
+          "description": "Read audit details"
+        },
+        "audit:create": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {projectId: number, type: string, standard: string, ...}, opt?: any)",
+          "returns": "Audit",
+          "description": "Create new formal audit"
+        },
+        "audit:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Audit",
+          "description": "Update audit metadata"
+        },
+        "audit:delete": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete audit"
+        },
+        "audit:findAuditReportItems": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {auditId: number}, opt?: any)",
+          "returns": "AuditItem[]",
+          "description": "Get all audit report items"
+        },
+        "audit:updateAuditReportItem": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, status: string, notes: string, ...}, opt?: any)",
+          "returns": "Result",
+          "description": "Update audit item evaluation"
+        },
+        "audit:findAuditTypes": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "AuditType[]",
+          "description": "Get available audit types"
+        },
+        "audit:findAuditChapters": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {auditTypeId: number}, opt?: any)",
+          "returns": "Chapter[]",
+          "description": "Get audit type chapters/sections"
+        },
+        "audit:getStats": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {auditId: number}, opt?: any)",
+          "returns": "Stats",
+          "description": "Get audit statistics summary"
+        },
+        "audit:generateReport": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {auditId: number, format: 'PDF' | 'HTML' | 'JSON'}, opt?: any)",
+          "returns": "{success: boolean, message?: string}",
+          "description": "Generate and save audit report"
+        }
+      }
+    },
+    "profile": {
+      "description": "Testing profile/template management",
+      "file": "src/electron/actions/profile.js",
+      "channels": {
+        "profile:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Profile[]",
+          "description": "Query test profiles"
+        },
+        "profile:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Profile",
+          "description": "Read profile definition"
+        },
+        "profile:create": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {name: string, description: string, ...}, opt?: any)",
+          "returns": "Profile",
+          "description": "Create new test profile (rebuilds menu)"
+        },
+        "profile:update": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number, ...}, opt?: any)",
+          "returns": "Profile",
+          "description": "Update profile"
+        },
+        "profile:delete": {
+          "type": "handle",
+          "async": true,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Result",
+          "description": "Delete profile (rebuilds menu)"
+        }
+      }
+    },
+    "systemCountry": {
+      "description": "Country/locale definitions for audit standards",
+      "file": "src/electron/actions/systemCountry.js",
+      "channels": {
+        "systemCountry:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Country[]",
+          "description": "Query available countries"
+        },
+        "systemCountry:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Country",
+          "description": "Read country definition"
+        }
+      }
+    },
+    "landmark": {
+      "description": "Accessibility landmark classification (11 landmark types)",
+      "file": "src/electron/actions/landmark.js",
+      "channels": {
+        "landmark:find": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: any, opt?: any)",
+          "returns": "Landmark[]",
+          "description": "Query landmark types"
+        },
+        "landmark:read": {
+          "type": "handle",
+          "async": false,
+          "parameters": "(data: {id: number}, opt?: any)",
+          "returns": "Landmark",
+          "description": "Read landmark definition"
+        }
+      }
+    }
+  },
+  "statistics": {
+    "totalChannels": 115,
+    "handleChannels": 109,
+    "onChannels": 6,
+    "asyncChannels": 28,
+    "syncChannels": 87,
+    "crudChannels": 62,
+    "specializedChannels": 53
+  },
+  "patterns": {
+    "standardCrud": {
+      "description": "Most entities implement CRUD pattern",
+      "methods": ["find", "read", "create", "update", "delete"],
+      "specialMethods": ["updateIsSelected", "updatePriority"]
+    },
+    "asyncOperations": ["generateReport", "generateSitemap", "startTest", "DNS lookups", "file I/O", "network operations"],
+    "fileExport": {
+      "description": "Report generation channels show file dialog and save",
+      "channels": ["audit:generateReport", "environmentTest:generateReport", "environmentPage:generateReport"],
+      "formats": ["PDF", "HTML", "JSON", "CSV"]
+    },
+    "eventListeners": {
+      "description": "Subscription-based channels using createIpcListener",
+      "channels": ["navigate", "webview:navigate", "environmentTest:onTestCompleted", "environmentPage:onTestCompleted"]
+    }
+  }
+}

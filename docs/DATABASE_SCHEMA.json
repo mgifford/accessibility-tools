@@ -1,0 +1,778 @@
+{
+  "metadata": {
+    "projectName": "Accessibility Tools",
+    "databaseType": "SQLite with Sequelize ORM",
+    "schemaVersion": "1.0.3",
+    "generatedDate": "2026-05-22",
+    "totalModels": 38,
+    "totalTables": 33,
+    "totalRelationships": 80,
+    "builtInRecords": 370
+  },
+  "models": {
+    "main": {
+      "count": 18,
+      "description": "User-created and application data",
+      "models": {
+        "project": {
+          "tableName": "projects",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "description": "Top-level container for accessibility testing efforts",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4", "description": "Primary key"},
+            "name": {"type": "STRING", "nullable": false, "description": "Project name"},
+            "image": {"type": "STRING", "nullable": true, "description": "Project image/logo"},
+            "connected": {"type": "BOOLEAN", "nullable": true, "default": false, "description": "Connection status"},
+            "essential_functionality": {"type": "TEXT", "nullable": true, "description": "Core functionality"},
+            "webpage_types": {"type": "TEXT", "nullable": true, "description": "Types of webpages"}
+          },
+          "relationships": {
+            "hasMany": ["environment", "audit"],
+            "belongsToMany": ["technology"]
+          },
+          "junctionTables": ["project_technology"]
+        },
+        "environment": {
+          "tableName": "environments",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["project_id"],
+          "description": "Websites/applications being tested within a project",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "name": {"type": "STRING", "nullable": false},
+            "url": {"type": "STRING", "nullable": false},
+            "project_id": {"type": "UUID", "nullable": false, "foreignKey": "project.id"}
+          },
+          "relationships": {
+            "belongsTo": ["project"],
+            "hasMany": ["environmentPage", "environmentTest", "audit"]
+          }
+        },
+        "environmentPage": {
+          "tableName": "environment_pages",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["environment_id", "parent_id"],
+          "description": "Specific pages/URLs within an environment",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "name": {"type": "STRING", "nullable": false},
+            "path": {"type": "STRING", "nullable": false},
+            "not_clickable": {"type": "BOOLEAN", "nullable": true, "default": false},
+            "domain": {"type": "STRING", "nullable": true, "description": "Added in migration 1.0.2"},
+            "environment_id": {"type": "UUID", "nullable": false},
+            "parent_id": {"type": "UUID", "nullable": true}
+          },
+          "relationships": {
+            "belongsTo": ["environment", "environmentPage"],
+            "hasMany": ["testCaseEnvironmentTestPage"],
+            "belongsToMany": ["environmentTest"]
+          },
+          "junctionTables": ["environmentTestPage"],
+          "selfReferential": true
+        },
+        "environmentTest": {
+          "tableName": "environment_tests",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["environment_id"],
+          "description": "Test runs/sessions targeting pages within an environment",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "name": {"type": "STRING", "nullable": false},
+            "status": {"type": "ENUM", "values": ["OPENED", "IN_PROGRESS", "TEST_COMPLETED", "TEST_FAILED", "COMPLETED", "FAILED", "CLOSED"], "default": "OPENED"},
+            "functionality_note": {"type": "TEXT", "nullable": true},
+            "page_variety_note": {"type": "TEXT", "nullable": true},
+            "start_date": {"type": "DATETIME", "nullable": true},
+            "end_date": {"type": "DATETIME", "nullable": true},
+            "environment_id": {"type": "UUID", "nullable": false}
+          },
+          "relationships": {
+            "belongsTo": ["environment"],
+            "hasMany": ["testCaseEnvironmentTestPage"],
+            "belongsToMany": ["environmentPage"]
+          },
+          "junctionTables": ["environmentTestPage"],
+          "cascadeDelete": true
+        },
+        "environmentTestPage": {
+          "tableName": "environment_test_pages",
+          "primaryKey": "composite",
+          "compositeKeys": ["environment_test_id", "environment_page_id"],
+          "description": "Junction table for test runs and pages",
+          "fields": {
+            "environment_test_id": {"type": "UUID", "nullable": false},
+            "environment_page_id": {"type": "UUID", "nullable": false},
+            "page_type": {"type": "ENUM", "values": ["RANDOM", "STRUCTURED"], "default": "RANDOM"},
+            "start_date": {"type": "DATETIME", "nullable": true},
+            "end_date": {"type": "DATETIME", "nullable": true}
+          },
+          "junctionType": true
+        },
+        "testCase": {
+          "tableName": "test_cases",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_standard_id", "system_category_id"],
+          "description": "Individual accessibility test scenarios (manual/automatic)",
+          "fields": {
+            "id": {"type": "STRING", "nullable": false, "description": "Semantic ID"},
+            "name": {"type": "STRING", "nullable": false},
+            "type": {"type": "ENUM", "values": ["MANUAL", "AUTOMATIC"], "default": "MANUAL"},
+            "steps": {"type": "TEXT", "nullable": true},
+            "result": {"type": "TEXT", "nullable": true},
+            "instruction": {"type": "TEXT", "nullable": true},
+            "selectors": {"type": "JSON", "nullable": true, "default": ["body"]},
+            "is_selected": {"type": "BOOLEAN", "nullable": true, "default": true},
+            "system_standard_id": {"type": "STRING", "nullable": false},
+            "system_category_id": {"type": "STRING", "nullable": false}
+          },
+          "relationships": {
+            "belongsTo": ["systemStandard", "systemCategory"],
+            "hasMany": ["testCaseEnvironmentTestPage"],
+            "belongsToMany": ["remediation", "systemAxeRules", "systemStandardCriteria"]
+          },
+          "junctionTables": ["test_case_remediations", "test_case_axe_rules", "test_case_criteria"],
+          "cascadeDelete": true
+        },
+        "testCaseEnvironmentTestPage": {
+          "tableName": "test_case_environment_test_pages",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["test_case_id", "environment_page_id", "environment_test_id"],
+          "uniqueConstraint": {"fields": ["test_case_id", "environment_page_id", "environment_test_id"]},
+          "description": "Execution of test case on specific page during test run",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "test_case_id": {"type": "STRING", "nullable": false},
+            "environment_page_id": {"type": "UUID", "nullable": false},
+            "environment_test_id": {"type": "UUID", "nullable": false},
+            "status": {"type": "ENUM", "values": ["PASS", "FAIL", "ERROR", "NOT_APPLICABLE", "INCOMPLETE", "IN_PROGRESS", "MANUAL"]}
+          },
+          "relationships": {
+            "belongsTo": ["testCase", "environmentPage", "environmentTest"],
+            "hasMany": ["testCaseEnvironmentTestPageTarget"]
+          },
+          "cascadeDelete": true
+        },
+        "testCaseEnvironmentTestPageTarget": {
+          "tableName": "test_case_environment_test_page_targets",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["test_case_page_id", "remediation_id", "system_landmark_id", "parent_landmark_id"],
+          "description": "Individual accessibility issues/findings discovered during test",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "test_case_page_id": {"type": "UUID", "nullable": false},
+            "status": {"type": "ENUM", "values": ["PASS", "FAIL", "ERROR", "NOT_APPLICABLE", "INCOMPLETE", "IN_PROGRESS", "MANUAL"]},
+            "rule": {"type": "TEXT", "nullable": true},
+            "selector": {"type": "TEXT", "nullable": true},
+            "html": {"type": "TEXT", "nullable": true},
+            "summary": {"type": "TEXT", "nullable": true},
+            "notes": {"type": "TEXT", "nullable": true},
+            "selector_used": {"type": "STRING", "nullable": true},
+            "remediation_id": {"type": "STRING", "nullable": true},
+            "related_target_count": {"type": "INTEGER", "nullable": true, "default": 0, "description": "Added in migration 1.0.1"},
+            "related_remediation_count": {"type": "INTEGER", "nullable": true, "default": 0, "description": "Added in migration 1.0.1"},
+            "is_manually_reviewed": {"type": "BOOLEAN", "nullable": true, "default": false, "description": "Added in migration 1.0.3"},
+            "system_landmark_id": {"type": "STRING", "nullable": true, "description": "Added in migration 1.0.1"},
+            "parent_landmark_id": {"type": "UUID", "nullable": true, "description": "Added in migration 1.0.1"}
+          },
+          "relationships": {
+            "belongsTo": ["testCaseEnvironmentTestPage", "remediation", "systemLandmark", "testCaseEnvironmentTestPageTarget"],
+            "hasMany": ["testCaseEnvironmentTestPageTarget"],
+            "belongsToMany": ["testCaseEnvironmentTestPageTarget"]
+          },
+          "junctionTables": ["testPageTargetOccurrence"],
+          "selfReferential": true,
+          "indexes": ["status", "test_case_page_id", "remediation_id", "related_target_count", "related_remediation_count", "system_landmark_id", "parent_landmark_id"]
+        },
+        "testPageTargetOccurrence": {
+          "tableName": "test_page_target_occurrences",
+          "primaryKey": "composite",
+          "compositeKeys": ["page_target_id", "related_page_target_id"],
+          "description": "Junction table for related page targets",
+          "fields": {
+            "page_target_id": {"type": "UUID", "nullable": false},
+            "related_page_target_id": {"type": "UUID", "nullable": false}
+          },
+          "junctionType": true,
+          "indexes": ["page_target_id", "related_page_target_id"]
+        },
+        "audit": {
+          "tableName": "audits",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["project_id", "environment_id", "environment_test_id", "profile_id", "system_audit_type_id", "system_audit_type_version_id"],
+          "description": "Formal accessibility audit document/report",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "status": {"type": "ENUM", "values": ["OPEN", "IN_PROGRESS", "CLOSED"], "default": "OPEN"},
+            "wcag_version": {"type": "STRING", "nullable": false},
+            "conformance_target": {"type": "ENUM", "values": ["A", "AA", "AAA"], "nullable": false},
+            "identifier": {"type": "STRING", "nullable": false, "unique": true},
+            "start_date": {"type": "DATETIME", "nullable": true, "default": "NOW"},
+            "product_name": {"type": "STRING", "nullable": true},
+            "product_version": {"type": "STRING", "nullable": true},
+            "product_description": {"type": "STRING", "nullable": true},
+            "product_url": {"type": "STRING", "nullable": true},
+            "vendor_name": {"type": "STRING", "nullable": true},
+            "vendor_address": {"type": "TEXT", "nullable": true},
+            "vendor_url": {"type": "STRING", "nullable": true},
+            "vendor_contact_name": {"type": "STRING", "nullable": true},
+            "vendor_contact_email": {"type": "STRING", "nullable": true},
+            "vendor_contact_phone": {"type": "STRING", "nullable": true},
+            "notes": {"type": "TEXT", "nullable": true},
+            "methods": {"type": "TEXT", "nullable": true},
+            "disclaimer": {"type": "TEXT", "nullable": true},
+            "repository_url": {"type": "STRING", "nullable": true},
+            "feedback": {"type": "TEXT", "nullable": true},
+            "license": {"type": "STRING", "nullable": true},
+            "summary": {"type": "TEXT", "nullable": true},
+            "project_id": {"type": "UUID", "nullable": true},
+            "environment_id": {"type": "UUID", "nullable": true},
+            "environment_test_id": {"type": "UUID", "nullable": true},
+            "profile_id": {"type": "UUID", "nullable": true},
+            "system_audit_type_id": {"type": "STRING", "nullable": true},
+            "system_audit_type_version_id": {"type": "STRING", "nullable": true}
+          },
+          "relationships": {
+            "belongsTo": ["project", "environment", "environmentTest", "profile", "systemAuditType", "systemAuditTypeVersion"],
+            "hasMany": ["auditItem"],
+            "belongsToMany": ["systemAuditChapterSection"]
+          },
+          "junctionTables": ["audit_chapter_section_audit"]
+        },
+        "auditItem": {
+          "tableName": "audit_items",
+          "primaryKey": "composite",
+          "compositeKeys": ["audit_id", "system_audit_chapter_section_item_id", "system_audit_chapter_section_item_type_id"],
+          "description": "Individual items/findings within an audit",
+          "fields": {
+            "audit_id": {"type": "UUID", "nullable": false},
+            "system_audit_chapter_section_item_id": {"type": "STRING", "nullable": false},
+            "system_audit_chapter_section_item_type_id": {"type": "STRING", "nullable": false},
+            "level": {"type": "ENUM", "nullable": true},
+            "remarks": {"type": "TEXT", "nullable": true}
+          },
+          "relationships": {
+            "belongsTo": ["audit", "systemAuditChapterSectionItem", "systemAuditChapterSectionItemType"]
+          }
+        },
+        "remediation": {
+          "tableName": "remediations",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_category_id"],
+          "description": "Accessibility issue fixes/remediation recommendations",
+          "fields": {
+            "id": {"type": "STRING", "nullable": false, "description": "Semantic ID"},
+            "name": {"type": "STRING", "nullable": false},
+            "description": {"type": "TEXT", "nullable": true},
+            "selectors": {"type": "JSON", "nullable": true, "default": ["body"]},
+            "is_selected": {"type": "BOOLEAN", "nullable": true, "default": true},
+            "system_category_id": {"type": "STRING", "nullable": false}
+          },
+          "relationships": {
+            "belongsTo": ["systemCategory"],
+            "hasMany": ["remediationExample"],
+            "belongsToMany": ["testCase", "systemStandardCriteria"]
+          },
+          "junctionTables": ["test_case_remediations", "remediation_criteria"]
+        },
+        "remediationExample": {
+          "tableName": "remediation_examples",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["remediation_id"],
+          "description": "Code examples/demonstrations for remediations",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "name": {"type": "STRING", "nullable": false},
+            "description": {"type": "TEXT", "nullable": true},
+            "code": {"type": "TEXT", "nullable": false},
+            "remediation_id": {"type": "STRING", "nullable": false}
+          },
+          "relationships": {
+            "belongsTo": ["remediation"]
+          }
+        },
+        "profile": {
+          "tableName": "profiles",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "description": "User profiles (auditor/tester profiles)",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "first_name": {"type": "STRING", "nullable": false},
+            "last_name": {"type": "STRING", "nullable": false},
+            "title": {"type": "STRING", "nullable": false},
+            "image": {"type": "STRING", "nullable": true}
+          },
+          "relationships": {
+            "hasOne": ["profileOrganization"]
+          }
+        },
+        "profileOrganization": {
+          "tableName": "profile_organizations",
+          "primaryKey": "id",
+          "primaryKeyType": "UUID",
+          "foreignKeys": ["profile_id", "country_id", "state_id"],
+          "description": "Organization details associated with user profiles",
+          "fields": {
+            "id": {"type": "UUID", "nullable": false, "default": "UUIDV4"},
+            "logo": {"type": "STRING", "nullable": true},
+            "name": {"type": "STRING", "nullable": true},
+            "email": {"type": "STRING", "nullable": true},
+            "phone": {"type": "STRING", "nullable": true},
+            "address": {"type": "TEXT", "nullable": true},
+            "address_2": {"type": "TEXT", "nullable": true},
+            "city": {"type": "STRING", "nullable": true},
+            "zip_code": {"type": "STRING", "nullable": true},
+            "url": {"type": "STRING", "nullable": true},
+            "profile_id": {"type": "UUID", "nullable": false},
+            "country_id": {"type": "STRING", "nullable": true},
+            "state_id": {"type": "STRING", "nullable": true}
+          },
+          "relationships": {
+            "belongsTo": ["profile", "systemCountry", "systemState"]
+          }
+        },
+        "technology": {
+          "tableName": "technologies",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Technology stack used in projects",
+          "fields": {
+            "id": {"type": "STRING", "nullable": false, "description": "Semantic ID"},
+            "name": {"type": "STRING", "nullable": false},
+            "is_system": {"type": "BOOLEAN", "nullable": true, "default": false}
+          },
+          "relationships": {
+            "belongsToMany": ["project"]
+          },
+          "junctionTables": ["project_technology"]
+        },
+        "settings": {
+          "tableName": "settings",
+          "primaryKey": "id",
+          "primaryKeyType": "INTEGER",
+          "description": "Application-level configuration settings",
+          "fields": {
+            "id": {"type": "INTEGER", "nullable": false, "description": "Singleton (typically 1)"},
+            "data_directory_path": {"type": "STRING", "nullable": true},
+            "can_open_browser": {"type": "BOOLEAN", "nullable": true, "default": false},
+            "is_eula_accepted": {"type": "BOOLEAN", "nullable": true, "default": false}
+          },
+          "relationships": {}
+        },
+        "accessibilitySettings": {
+          "tableName": "accessibility_settings",
+          "primaryKey": "id",
+          "primaryKeyType": "INTEGER",
+          "description": "UI accessibility preferences for the application",
+          "fields": {
+            "id": {"type": "INTEGER", "nullable": false, "autoIncrement": true},
+            "profile": {"type": "ENUM", "nullable": true, "description": "Accessibility profile"},
+            "adjustments": {"type": "JSON", "nullable": true, "default": []}
+          },
+          "relationships": {}
+        },
+        "migration": {
+          "tableName": "migrations",
+          "primaryKey": "name",
+          "primaryKeyType": "STRING",
+          "description": "Tracks which database migrations have been applied",
+          "fields": {
+            "name": {"type": "STRING", "nullable": false, "unique": true},
+            "applied_at": {"type": "DATETIME", "nullable": true}
+          },
+          "relationships": {}
+        }
+      }
+    },
+    "system": {
+      "count": 20,
+      "description": "Reference data loaded from systemData.json",
+      "models": {
+        "systemStandard": {
+          "tableName": "system_standards",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Top-level accessibility standards (e.g., WCAG)",
+          "builtInRecords": 1,
+          "relationships": {
+            "hasMany": ["systemStandardVersion", "systemStandardPrinciple", "systemStandardGuideline", "systemStandardCriteria"]
+          }
+        },
+        "systemStandardVersion": {
+          "tableName": "system_standard_versions",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_standard_id"],
+          "description": "Versions of accessibility standards (e.g., WCAG 2.0, 2.1, 2.2)",
+          "builtInRecords": 3,
+          "relationships": {
+            "belongsTo": ["systemStandard"],
+            "belongsToMany": ["systemStandardPrinciple", "systemStandardGuideline", "systemStandardCriteria"]
+          },
+          "junctionTables": ["system_version_principle", "system_version_guideline", "system_version_criteria"]
+        },
+        "systemStandardPrinciple": {
+          "tableName": "system_standard_principles",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_standard_id"],
+          "description": "WCAG principles (Perceivable, Operable, Understandable, Robust)",
+          "builtInRecords": 4,
+          "relationships": {
+            "belongsTo": ["systemStandard"],
+            "belongsToMany": ["systemStandardVersion"],
+            "hasMany": ["systemStandardGuideline", "systemStandardCriteria"]
+          }
+        },
+        "systemStandardGuideline": {
+          "tableName": "system_standard_guidelines",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_standard_id", "system_standard_principle_id"],
+          "description": "WCAG guidelines (e.g., 1.1, 1.2, 1.3)",
+          "builtInRecords": 13,
+          "relationships": {
+            "belongsTo": ["systemStandard", "systemStandardPrinciple"],
+            "belongsToMany": ["systemStandardVersion"],
+            "hasMany": ["systemStandardCriteria"]
+          }
+        },
+        "systemStandardCriteria": {
+          "tableName": "system_standard_criteria",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_standard_id", "system_standard_principle_id", "system_standard_guideline_id"],
+          "description": "WCAG success criteria with conformance levels (A, AA, AAA)",
+          "builtInRecords": 87,
+          "fields": {
+            "level": {"type": "ENUM", "values": ["A", "AA", "AAA"], "default": "A"}
+          },
+          "relationships": {
+            "hasOne": ["systemAuditChapterSectionItem"],
+            "belongsTo": ["systemStandard", "systemStandardPrinciple", "systemStandardGuideline"],
+            "belongsToMany": ["systemStandardVersion", "testCase", "remediation"]
+          },
+          "junctionTables": ["system_version_criteria", "test_case_criteria", "remediation_criteria"]
+        },
+        "systemContinent": {
+          "tableName": "system_continents",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Continents for geographic data",
+          "builtInRecords": 0,
+          "relationships": {
+            "hasMany": ["systemCountry"]
+          }
+        },
+        "systemCountry": {
+          "tableName": "system_countries",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["continent_id"],
+          "description": "Countries for organization location data",
+          "builtInRecords": 247,
+          "relationships": {
+            "belongsTo": ["systemContinent"],
+            "hasMany": ["systemState"]
+          }
+        },
+        "systemState": {
+          "tableName": "system_states",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["country_id"],
+          "description": "States/provinces for location data",
+          "relationships": {
+            "belongsTo": ["systemCountry"]
+          }
+        },
+        "systemCategory": {
+          "tableName": "system_categories",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Categories for organizing test cases and remediations",
+          "builtInRecords": 11,
+          "relationships": {
+            "hasMany": ["remediation"]
+          }
+        },
+        "systemLandmark": {
+          "tableName": "system_landmarks",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "HTML landmark roles for page structure classification",
+          "builtInRecords": 11,
+          "fields": {
+            "selectors": {"type": "JSON", "nullable": false, "description": "CSS selectors for identification"}
+          },
+          "relationships": {}
+        },
+        "systemAxeRules": {
+          "tableName": "system_axe_rules",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Axe accessibility checker rule definitions",
+          "relationships": {
+            "belongsToMany": ["testCase"]
+          },
+          "junctionTables": ["test_case_axe_rules"]
+        },
+        "systemAuditType": {
+          "tableName": "system_audit_types",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Types of accessibility audit methodologies (WCAG-EM, ATAG, VPAT)",
+          "relationships": {
+            "hasOne": ["audit"],
+            "hasMany": ["systemAuditTypeVersion", "systemAuditChapterAuditTypeVersion"]
+          }
+        },
+        "systemAuditTypeVersion": {
+          "tableName": "system_audit_type_versions",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_audit_type_id"],
+          "description": "Versions of audit types",
+          "relationships": {
+            "hasOne": ["audit"],
+            "belongsTo": ["systemAuditType"]
+          }
+        },
+        "systemAuditChapter": {
+          "tableName": "system_audit_chapters",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Top-level chapters in an audit document",
+          "relationships": {
+            "hasMany": ["systemAuditChapterSection", "systemAuditChapterAuditTypeVersion"]
+          }
+        },
+        "systemAuditChapterSection": {
+          "tableName": "system_audit_chapter_sections",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_audit_chapter_id"],
+          "description": "Sections within audit chapters",
+          "relationships": {
+            "hasMany": ["systemAuditChapterSectionItem"],
+            "belongsTo": ["systemAuditChapter"],
+            "belongsToMany": ["audit"]
+          },
+          "junctionTables": ["audit_chapter_section_audit"]
+        },
+        "systemAuditChapterSectionItem": {
+          "tableName": "system_audit_chapter_section_items",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "foreignKeys": ["system_audit_chapter_section_id", "system_standard_criteria_id"],
+          "description": "Individual items/questions within an audit section",
+          "relationships": {
+            "belongsTo": ["systemAuditChapterSection", "systemStandardCriteria"],
+            "hasMany": ["auditItem"],
+            "belongsToMany": ["systemAuditChapterSectionItemType"]
+          },
+          "junctionTables": ["system_audit_item_types"]
+        },
+        "systemAuditChapterSectionItemType": {
+          "tableName": "system_audit_chapter_section_item_types",
+          "primaryKey": "id",
+          "primaryKeyType": "STRING",
+          "description": "Types for audit section items",
+          "relationships": {
+            "belongsToMany": ["systemAuditChapterSectionItem"],
+            "hasMany": ["auditItem"]
+          },
+          "junctionTables": ["system_audit_item_types"]
+        },
+        "systemAuditChapterAuditTypeVersion": {
+          "tableName": "system_audit_chapter_audit_type_versions",
+          "primaryKey": "composite",
+          "compositeKeys": ["system_audit_chapter_id", "system_audit_type_id", "system_audit_type_version_id"],
+          "description": "Junction table linking audit chapters to audit type versions",
+          "relationships": {
+            "belongsTo": ["systemAuditChapter", "systemAuditType"]
+          },
+          "junctionType": true
+        },
+        "systemSync": {
+          "tableName": "system_syncs",
+          "primaryKey": "id",
+          "primaryKeyType": "INTEGER",
+          "description": "Tracks when system data was last synchronized",
+          "fields": {
+            "id": {"type": "INTEGER", "nullable": false, "autoIncrement": true},
+            "version": {"type": "STRING", "nullable": true},
+            "last_sync_at": {"type": "DATETIME", "nullable": false, "note": "Replaces updatedAt"}
+          },
+          "relationships": {}
+        }
+      }
+    }
+  },
+  "junctionTables": [
+    {
+      "name": "project_technology",
+      "links": ["project", "technology"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "environmentTestPage",
+      "links": ["environmentTest", "environmentPage"],
+      "type": "many-to-many",
+      "extraColumns": ["page_type", "start_date", "end_date"]
+    },
+    {
+      "name": "test_case_remediations",
+      "links": ["testCase", "remediation"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "test_case_axe_rules",
+      "links": ["testCase", "systemAxeRules"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "test_case_criteria",
+      "links": ["testCase", "systemStandardCriteria"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "remediation_criteria",
+      "links": ["remediation", "systemStandardCriteria"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "system_version_principle",
+      "links": ["systemStandardVersion", "systemStandardPrinciple"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "system_version_guideline",
+      "links": ["systemStandardVersion", "systemStandardGuideline"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "system_version_criteria",
+      "links": ["systemStandardVersion", "systemStandardCriteria"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "system_audit_item_types",
+      "links": ["systemAuditChapterSectionItem", "systemAuditChapterSectionItemType"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "audit_chapter_section_audit",
+      "links": ["systemAuditChapterSection", "audit"],
+      "type": "many-to-many"
+    },
+    {
+      "name": "testPageTargetOccurrence",
+      "links": ["testCaseEnvironmentTestPageTarget", "testCaseEnvironmentTestPageTarget"],
+      "type": "self-referential",
+      "description": "Relationships between related page targets"
+    }
+  ],
+  "cascadeBehaviors": [
+    {
+      "from": "environmentTest",
+      "to": ["testCaseEnvironmentTestPage", "testCaseEnvironmentTestPageTarget"],
+      "action": "DELETE CASCADE",
+      "description": "Deleting test run cascades to all test executions and findings"
+    },
+    {
+      "from": "testCase",
+      "to": ["testCaseEnvironmentTestPage"],
+      "action": "DELETE CASCADE",
+      "description": "Deleting test case cascades to all its executions"
+    },
+    {
+      "from": "testCaseEnvironmentTestPage",
+      "to": ["testCaseEnvironmentTestPageTarget"],
+      "action": "DELETE CASCADE",
+      "description": "Deleting test execution cascades to all its findings"
+    },
+    {
+      "from": "profile",
+      "to": "profileOrganization",
+      "action": "DELETE CASCADE"
+    },
+    {
+      "from": "testCaseEnvironmentTestPageTarget (parent_landmark)",
+      "to": "testCaseEnvironmentTestPageTarget (landmark_children)",
+      "action": "SET NULL",
+      "description": "When parent target deleted, children landmarks set to NULL"
+    }
+  ],
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "name": "sample",
+      "changes": "Empty placeholder (initial setup)"
+    },
+    {
+      "version": "1.0.1",
+      "name": "testLandmarks",
+      "table": "testCaseEnvironmentTestPageTarget",
+      "changes": [
+        "ADD system_landmark_id (STRING FK, onDelete: SET NULL)",
+        "ADD parent_landmark_id (UUID self-ref, onDelete: SET NULL, onUpdate: CASCADE)",
+        "ADD INDEX on system_landmark_id",
+        "ADD INDEX on parent_landmark_id"
+      ]
+    },
+    {
+      "version": "1.0.1",
+      "name": "testOccurrenceCounts",
+      "table": "testCaseEnvironmentTestPageTarget",
+      "changes": [
+        "ADD related_target_count (INTEGER, default 0)",
+        "ADD related_remediation_count (INTEGER, default 0)",
+        "ADD INDEX on related_target_count",
+        "ADD INDEX on related_remediation_count"
+      ]
+    },
+    {
+      "version": "1.0.2",
+      "name": "environmentPage",
+      "table": "environmentPage",
+      "changes": [
+        "ADD domain (STRING, nullable)"
+      ]
+    },
+    {
+      "version": "1.0.3",
+      "name": "postLogin",
+      "table": "testCaseEnvironmentTestPageTarget",
+      "changes": [
+        "ADD is_manually_reviewed (BOOLEAN, default false)"
+      ]
+    }
+  ],
+  "statistics": {
+    "totalModels": 38,
+    "mainModels": 18,
+    "systemModels": 20,
+    "totalTables": 33,
+    "junctionTables": 12,
+    "builtInRecords": 370,
+    "totalRelationships": 80,
+    "foreignKeys": 40,
+    "indexes": 20,
+    "cascadeDeletePaths": 3,
+    "compositePrimaryKeys": 3,
+    "selfReferentialRelationships": 2,
+    "scopedBelongsToMany": 2,
+    "migrations": 5,
+    "distinctMigrationChanges": 6
+  }
+}
