@@ -35,7 +35,7 @@ permissions:
   id-token: write
 
 env:
-  DEFAULT_SCHEDULE_SCAN_URL: 'https://mgifford.github.io/accessibility-tools/'
+  DEFAULT_SCHEDULE_SCAN_URL: 'https://docs.spec-kitty.ai/'
 
 concurrency:
   group: pages
