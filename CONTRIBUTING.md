@@ -85,6 +85,43 @@ The Accessibility Tools API is fully documented in **[docs/API_SPECIFICATION.md]
    { success: false, error: { code: "ERROR_CODE", message: "...", details: {...} } }
    ```
 
+### Security Requirements
+
+All code changes must adhere to **[docs/SECURITY_SPECIFICATION.md](docs/SECURITY_SPECIFICATION.md)**.
+
+**Key security principles:**
+
+1. **Input Validation** — Validate all external inputs (IPC, file paths, URLs)
+   - Use Joi schemas for structured data
+   - Check types, ranges, formats
+   - Reject invalid inputs with clear error messages
+
+2. **Process Isolation** — Main process is trusted; renderer is sandboxed
+   - Validate all data from renderer before use
+   - Never disable Electron security features (nodeIntegration, contextIsolation)
+   - Use preload script whitelist for IPC exposure
+
+3. **File I/O** — Secure file operations
+   - Sanitize paths to prevent directory traversal
+   - Use `fs.promises` for async I/O
+   - Clean up temporary files
+
+4. **Command Execution** — Use execFile, never exec
+   - Arguments passed as array, not concatenated strings
+   - Validate script names against whitelist
+
+5. **Data Privacy** — No external transmission without consent
+   - Keep user data local by default
+   - Log security-relevant operations
+   - Never store credentials in plain text
+
+**Before committing:**
+- [ ] All inputs validated and sanitized
+- [ ] No hardcoded credentials or secrets
+- [ ] Security tests pass
+- [ ] No unnecessary Electron security features disabled
+- [ ] Logs don't contain sensitive data
+
 ## Database Changes
 
 **Accessibility Tools** uses Sequelize + SQLite to manage the database. The folder structure for the database related files is as follows:

@@ -103,7 +103,7 @@ Each ADR follows this structure:
 - ADR 0004: Use Sequelize ORM for Database Access
 - ADR 0005: Test Strategy and Coverage Targets
 - ADR 0006: Error Handling and Logging Standards
-- ADR 0007: Security Model: Main Process and Renderer Isolation
+- ADR 0007: Security Model - Main Process and Renderer Isolation (see [SECURITY_SPECIFICATION.md](../SECURITY_SPECIFICATION.md))
 - ADR 0008: State Management with Zustand
 - ADR 0009: Material-UI for Component Library and Accessibility
 - ADR 0010: Automated Testing Framework and Tools
