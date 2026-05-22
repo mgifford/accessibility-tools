@@ -156,12 +156,54 @@ For any updates to the database structure, the following steps need to be follow
 
    This will run the migration file, sync the models and update the system data locally, if there are any changes there.
 
+## Testing Requirements
+
+All changes must include tests. See **[docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md)** for the full strategy.
+
+**Quick summary:**
+
+- **New functions/logic**: Unit tests required (co-located: `myFile.test.js`)
+- **IPC action changes**: Integration tests required
+- **UI component changes**: Component tests + accessibility tests required
+- **Security-related changes**: Security tests required
+- **Coverage**: PRs must not decrease overall coverage (CI enforced)
+
+**Run tests before submitting:**
+
+```bash
+npm test               # All unit + component tests
+npm run test:coverage  # With coverage report
+npm run test:a11y      # Accessibility tests
+```
+
+**Test file naming conventions:**
+
+| Type | Location | Naming |
+|------|----------|--------|
+| Unit | Next to source | `myFile.test.js` |
+| Component | Next to component | `MyComponent.component.test.jsx` |
+| Integration | `test/integration/` | `project.integration.test.js` |
+| E2E | `e2e/` | `create-project.spec.js` |
+| Security | `test/security/` | `validation.test.js` |
+
 ## Pull Request Process
 
 1. Push your branch
-2. Open a Pull Request (PR) to master
-3. Respond to review feedback promptly
-4. Your PR will be merged once it's approved and passes CI checks
+2. Ensure all tests pass locally (`npm test`)
+3. Open a Pull Request (PR) to master
+4. Ensure the PR description includes:
+   - What changed and why
+   - Test files added/modified
+   - Accessibility impact (if UI changes)
+   - Constitution principle alignment
+5. Respond to review feedback promptly
+6. Your PR will be merged once it's approved and passes all CI checks:
+   - ✅ Unit tests pass
+   - ✅ Component tests pass
+   - ✅ Accessibility tests pass
+   - ✅ Coverage not decreased
+   - ✅ Linting passes (`npm run lint`)
+   - ✅ Security review (if applicable)
 
 ## Community
 
