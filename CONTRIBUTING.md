@@ -16,6 +16,8 @@ Thank you for considering contributing! We welcome all contributions, including 
 
 ## Development Standards
 
+> **Full reference:** [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md)
+
 - **Code Style**: Use Prettier/ESLint for consistent formatting. Run the following command before each commit:
 
   ```bash
