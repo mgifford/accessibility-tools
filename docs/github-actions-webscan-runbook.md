@@ -38,6 +38,7 @@ Pages outputs:
 - `gh-pages/data/latest.json` (latest summary)
 - `gh-pages/data/history.json` (recent workflow history)
 - `gh-pages/reports/<run_id>/` (run-level report bundle)
+- `gh-pages/reports/latest/` (latest run bundle mirror for stable links)
 
 Artifacts:
 - Uploaded as `webscan-<run_id>`
@@ -60,6 +61,7 @@ Artifacts:
 3. The queue workflow validates fields from the issue body.
 4. The workflow dispatches `webscan-pages.yml` with parsed inputs.
 5. The issue receives `scan-queued` label and a tracking comment.
+6. On successful scan + deploy, the workflow comments with report links, removes `scan-queued`, and closes the issue.
 
 ## Maintenance tasks
 
