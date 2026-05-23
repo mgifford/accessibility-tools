@@ -40,6 +40,7 @@ permissions:
   id-token: write
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   DEFAULT_SCHEDULE_SCAN_URL: 'https://mgifford.github.io/accessibility-tools/'
 
 concurrency:
@@ -56,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve inputs
         id: resolve
@@ -91,7 +92,7 @@ jobs:
           echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
@@ -115,6 +116,148 @@ jobs:
             --respect_robots true \
             --out /tmp/webscan-output
 
+      - name: Build report metadata
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowName = 'Web Accessibility Scan + Pages';
+            const assetBaseNames = [
+              { label: 'HTML report', file: 'report.html' },
+              { label: 'Summary JSON', file: 'summary.json' },
+              { label: 'Results JSON', file: 'results.json' },
+              { label: 'URLs JSON', file: 'urls.json' }
+            ];
+
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const scanRuns = [];
+            for (const run of runs.filter(r => r.name === workflowName).slice(0, 50)) {
+              const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner,
+                repo,
+                run_id: run.id,
+                per_page: 100
+              });
+
+              const artifact = (data.artifacts || []).find(candidate => candidate.name === `webscan-${run.id}`)
+                || (data.artifacts || []).find(candidate => candidate.name.startsWith('webscan-'))
+                || null;
+
+              scanRuns.push({
+                id: run.id,
+                runNumber: run.run_number,
+                status: run.status,
+                conclusion: run.conclusion,
+                event: run.event,
+                createdAt: run.created_at,
+                updatedAt: run.updated_at,
+                htmlUrl: run.html_url,
+                reportUrl: `reports/${run.id}/report.html`,
+                assets: assetBaseNames.map(asset => ({
+                  label: asset.label,
+                  file: asset.file,
+                  path: `reports/${run.id}/${asset.file}`
+                })),
+                artifact: artifact ? {
+                  id: artifact.id,
+                  name: artifact.name,
+                  expired: artifact.expired,
+                  downloadUrl: artifact.archive_download_url
+                } : null
+              });
+            }
+
+            const reportIndex = {
+              schemaVersion: 1,
+              generatedAt: new Date().toISOString(),
+              workflowName,
+              latestReportUrl: 'reports/latest/report.html',
+              runs: scanRuns
+            };
+
+            const history = {
+              schemaVersion: 2,
+              generatedAt: reportIndex.generatedAt,
+              workflowName,
+              runs: scanRuns.map(({ artifact, assets, ...run }) => ({
+                ...run,
+                artifactId: artifact?.id || null
+              }))
+            };
+
+            const dataDir = path.join(process.cwd(), 'gh-pages', 'data');
+            const tempDir = path.join(process.cwd(), '.tmp');
+            fs.mkdirSync(dataDir, { recursive: true });
+            fs.mkdirSync(tempDir, { recursive: true });
+            fs.writeFileSync(path.join(dataDir, 'history.json'), JSON.stringify(history, null, 2));
+            fs.writeFileSync(path.join(dataDir, 'report-index.json'), JSON.stringify(reportIndex, null, 2));
+            fs.writeFileSync(
+              path.join(tempDir, 'report-artifacts.json'),
+              JSON.stringify(
+                scanRuns
+                  .filter(run => run.id !== context.runId && run.artifact?.downloadUrl && !run.artifact?.expired),
+                null,
+                2
+              )
+            );
+
+      - name: Restore recent report assets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import io
+          import json
+          import os
+          import shutil
+          import urllib.request
+          import zipfile
+          from pathlib import Path
+
+          manifest_path = Path('.tmp/report-artifacts.json')
+          if not manifest_path.exists():
+              raise SystemExit(0)
+
+          try:
+              runs = json.loads(manifest_path.read_text(encoding='utf-8'))
+          except json.JSONDecodeError:
+              runs = []
+
+          headers = {
+              'Authorization': f"Bearer {os.environ['GITHUB_TOKEN']}",
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+          }
+
+          for run in runs:
+              download_url = ((run.get('artifact') or {}).get('downloadUrl') or '').strip()
+              if not download_url:
+                  continue
+
+              target_dir = Path('gh-pages') / 'reports' / str(run['id'])
+              if target_dir.exists():
+                  shutil.rmtree(target_dir)
+              target_dir.mkdir(parents=True, exist_ok=True)
+
+              request = urllib.request.Request(download_url, headers=headers)
+              with urllib.request.urlopen(request, timeout=90) as response:
+                  payload = response.read()
+
+              with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                  archive.extractall(target_dir)
+          PY
+
       - name: Prepare Pages content
         run: |
           set -euo pipefail
@@ -128,71 +271,28 @@ jobs:
           rm -rf "$LATEST_DIR"/*
           cp -R "$RUN_DIR"/. "$LATEST_DIR/"
 
-      - name: Build history data
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('node:fs');
-            const path = require('node:path');
-
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
-              owner,
-              repo,
-              event: undefined,
-              per_page: 100
-            });
-
-            const scanRuns = runs
-              .filter(r => r.name === 'Web Accessibility Scan + Pages')
-              .slice(0, 50)
-              .map(r => ({
-                id: r.id,
-                runNumber: r.run_number,
-                status: r.status,
-                conclusion: r.conclusion,
-                event: r.event,
-                createdAt: r.created_at,
-                updatedAt: r.updated_at,
-                htmlUrl: r.html_url,
-                artifactsUrl: r.artifacts_url
-              }));
-
-            const output = {
-              schemaVersion: 1,
-              generatedAt: new Date().toISOString(),
-              workflowName: 'Web Accessibility Scan + Pages',
-              runs: scanRuns
-            };
-
-            const outPath = path.join(process.cwd(), 'gh-pages', 'data', 'history.json');
-            fs.mkdirSync(path.dirname(outPath), { recursive: true });
-            fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
-
       - name: Upload scan artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webscan-${{ github.run_id }}
           path: /tmp/webscan-output
           retention-days: 30
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./gh-pages
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Comment and close scan request issue
         if: ${{ steps.resolve.outputs.issue_number != '' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner;

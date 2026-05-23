@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accessibility Tools - Published Reports</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, Roboto, system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 1.25rem;
+        line-height: 1.45;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .stack > * + * {
+        margin-top: .75rem;
+      }
+
+      .card {
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: .92rem;
+      }
+
+      th, td {
+        border: 1px solid rgba(127, 127, 127, 0.4);
+        padding: .45rem;
+        vertical-align: top;
+      }
+
+      .muted {
+        opacity: .8;
+      }
+
+      .asset-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+      }
+
+      a { color: inherit; }
+    </style>
+  </head>
+  <body>
+    <main class="stack">
+      <header class="stack">
+        <h1>Published accessibility scan reports</h1>
+        <p class="muted">
+          Browse recent runs and open every published asset for each report bundle.
+        </p>
+        <p><a href="./">Back to dashboard</a></p>
+      </header>
+
+      <section class="grid" id="reports-summary">
+        <article class="card">
+          <strong>Loading report inventory…</strong>
+        </article>
+      </section>
+
+      <section class="card stack">
+        <h2>Recent report bundles</h2>
+        <div class="muted">Data source: <code>gh-pages/data/report-index.json</code></div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Run #</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Assets</th>
+                <th>Workflow</th>
+              </tr>
+            </thead>
+            <tbody id="report-rows">
+              <tr><td colspan="5">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./reports.js" type="module"></script>
+  </body>
+</html>

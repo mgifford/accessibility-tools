@@ -37,8 +37,10 @@ Scanner controls:
 Pages outputs:
 - `gh-pages/data/latest.json` (latest summary)
 - `gh-pages/data/history.json` (recent workflow history)
+- `gh-pages/data/report-index.json` (published report asset inventory)
 - `gh-pages/reports/<run_id>/` (run-level report bundle)
 - `gh-pages/reports/latest/` (latest run bundle mirror for stable links)
+- `gh-pages/reports.html` (listing of report bundles and asset links)
 
 Artifacts:
 - Uploaded as `webscan-<run_id>`

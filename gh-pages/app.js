@@ -236,7 +236,11 @@ async function loadHistory() {
           <td>${run.status}${run.conclusion ? ` / ${run.conclusion}` : ''}</td>
           <td>${run.event || '-'}</td>
           <td>${formatDate(run.createdAt)}</td>
-          <td><a href="${run.htmlUrl}" target="_blank" rel="noopener noreferrer">View run</a></td>
+          <td>
+            <a href="${run.htmlUrl}" target="_blank" rel="noopener noreferrer">View run</a>
+            · <a href="./${run.reportUrl || `reports/${run.id}/report.html`}">HTML report</a>
+            · <a href="./reports.html">Assets</a>
+          </td>
         </tr>
       `
       )

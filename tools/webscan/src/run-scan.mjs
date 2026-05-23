@@ -342,14 +342,118 @@ function summarizeViolations(results) {
   return [...map.values()].sort((a, b) => b.nodeCount - a.nodeCount);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function toSafeHref(value, { allowRelative = false } = {}) {
+  const href = String(value ?? '').trim();
+  if (!href) return '#';
+  if (allowRelative && !href.includes(':')) {
+    return escapeHtml(href);
+  }
+  try {
+    const parsed = new URL(href);
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      return escapeHtml(parsed.toString());
+    }
+  } catch {
+    return '#';
+  }
+  return '#';
+}
+
+function formatTimestamp(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toISOString();
+}
+
 function buildHtmlReport(summary, results) {
-  const topRows = summary.topViolations
-    .slice(0, 20)
-    .map(v => `<tr><td>${v.id}</td><td>${v.impact}</td><td>${v.pagesAffected}</td><td>${v.nodeCount}</td><td><a href="${v.helpUrl}">${v.help}</a></td></tr>`)
-    .join('');
+  const assetLinks = [
+    { label: 'HTML report', href: 'report.html' },
+    { label: 'Summary JSON', href: 'summary.json' },
+    { label: 'Results JSON', href: 'results.json' },
+    { label: 'URLs JSON', href: 'urls.json' }
+  ];
+
+  const topRows = summary.topViolations.length > 0
+    ? summary.topViolations
+      .slice(0, 20)
+      .map(v => `<tr><td>${escapeHtml(v.id)}</td><td>${escapeHtml(v.impact)}</td><td>${escapeHtml(v.pagesAffected)}</td><td>${escapeHtml(v.nodeCount)}</td><td><a href="${toSafeHref(v.helpUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.help)}</a></td></tr>`)
+      .join('')
+    : '<tr><td colspan="5">No accessibility violations were detected.</td></tr>';
 
   const pageRows = results
-    .map(r => `<tr><td><a href="${r.url}">${r.url}</a></td><td>${r.status}</td><td>${r.violationCount}</td><td>${r.incompleteCount}</td><td>${r.category || ''}</td></tr>`)
+    .map(r => `<tr><td><a href="${toSafeHref(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.url)}</a></td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.violationCount)}</td><td>${escapeHtml(r.incompleteCount)}</td><td>${escapeHtml(r.category || '')}</td></tr>`)
+    .join('');
+
+  const failureRows = summary.failures.length > 0
+    ? summary.failures
+      .map(failure => `<tr><td><a href="${toSafeHref(failure.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(failure.url)}</a></td><td>${escapeHtml(failure.category)}</td><td>${escapeHtml(failure.message)}</td></tr>`)
+      .join('')
+    : '<tr><td colspan="3">No crawl or scan failures were recorded.</td></tr>';
+
+  const urlsList = (summary.urls || []).length > 0
+    ? `<ol>${summary.urls.map(url => `<li><a href="${toSafeHref(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('')}</ol>`
+    : '<p>No URLs were collected for this run.</p>';
+
+  const pageDetails = results
+    .map((result) => {
+      const violationsMarkup = result.violations.length > 0
+        ? result.violations.map((violation) => `
+            <details>
+              <summary><strong>${escapeHtml(violation.id)}</strong> (${escapeHtml(violation.impact)}) — ${escapeHtml(violation.help)}</summary>
+              <p>${escapeHtml(violation.description)}</p>
+              <p><a href="${toSafeHref(violation.helpUrl)}" target="_blank" rel="noopener noreferrer">Guidance</a></p>
+              <ul>
+                ${violation.nodes.map(node => `<li><div><strong>Target:</strong> <code>${escapeHtml((node.target || []).join(', '))}</code></div><div><strong>HTML:</strong> <code>${escapeHtml(node.html)}</code></div><div><strong>Summary:</strong> ${escapeHtml(node.summary)}</div></li>`).join('')}
+              </ul>
+            </details>
+          `).join('')
+        : '<p>No rule violations recorded.</p>';
+
+      const incompleteMarkup = result.incomplete.length > 0
+        ? result.incomplete.map((entry) => `
+            <details>
+              <summary><strong>${escapeHtml(entry.id)}</strong> (${escapeHtml(entry.impact)}) — ${escapeHtml(entry.help)}</summary>
+              <p>${escapeHtml(entry.description)}</p>
+              <p><a href="${toSafeHref(entry.helpUrl)}" target="_blank" rel="noopener noreferrer">Guidance</a></p>
+              <ul>
+                ${entry.nodes.map(node => `<li><div><strong>Target:</strong> <code>${escapeHtml((node.target || []).join(', '))}</code></div><div><strong>HTML:</strong> <code>${escapeHtml(node.html)}</code></div><div><strong>Summary:</strong> ${escapeHtml(node.summary)}</div></li>`).join('')}
+              </ul>
+            </details>
+          `).join('')
+        : '<p>No incomplete findings recorded.</p>';
+
+      return `
+        <section class="card stack">
+          <h3><a href="${toSafeHref(result.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(result.url)}</a></h3>
+          <div class="inline-list">
+            <span><strong>Status:</strong> ${escapeHtml(result.status)}</span>
+            <span><strong>Violations:</strong> ${escapeHtml(result.violationCount)}</span>
+            <span><strong>Incomplete:</strong> ${escapeHtml(result.incompleteCount)}</span>
+            <span><strong>Started:</strong> ${escapeHtml(formatTimestamp(result.startedAt))}</span>
+            <span><strong>Finished:</strong> ${escapeHtml(formatTimestamp(result.finishedAt))}</span>
+          </div>
+          ${result.message ? `<p><strong>${escapeHtml(result.category || 'error')}:</strong> ${escapeHtml(result.message)}</p>` : ''}
+          <div class="detail-grid">
+            <section>
+              <h4>Violations</h4>
+              ${violationsMarkup}
+            </section>
+            <section>
+              <h4>Incomplete</h4>
+              ${incompleteMarkup}
+            </section>
+          </div>
+        </section>
+      `;
+    })
     .join('');
 
   return `<!doctype html>
@@ -359,22 +463,38 @@ function buildHtmlReport(summary, results) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Accessibility scan report</title>
     <style>
+      :root { color-scheme: light dark; }
       body { font-family: Inter, Arial, sans-serif; margin: 24px; line-height: 1.5; }
       table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
       th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-      th { background: #f7f7f7; }
-      .meta { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; margin-bottom: 16px; }
+      th { background: rgba(127, 127, 127, 0.12); }
+      .meta, .detail-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; margin-bottom: 16px; }
       .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+      .stack > * + * { margin-top: 12px; }
+      .inline-list { display: flex; flex-wrap: wrap; gap: 12px; }
+      .asset-list { display: flex; flex-wrap: wrap; gap: 12px; padding-left: 0; list-style: none; }
+      code { white-space: pre-wrap; word-break: break-word; }
+      details + details { margin-top: 8px; }
+      a { color: inherit; }
     </style>
   </head>
   <body>
     <h1>Accessibility Scan Report</h1>
     <div class="meta">
-      <div class="card"><strong>Target URL</strong><div>${summary.targetUrl}</div></div>
-      <div class="card"><strong>Pages scanned</strong><div>${summary.pagesScanned}</div></div>
-      <div class="card"><strong>Total violations</strong><div>${summary.totalViolations}</div></div>
-      <div class="card"><strong>Total incomplete</strong><div>${summary.totalIncomplete}</div></div>
+      <div class="card"><strong>Target URL</strong><div><a href="${toSafeHref(summary.targetUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(summary.targetUrl)}</a></div></div>
+      <div class="card"><strong>Generated</strong><div>${escapeHtml(formatTimestamp(summary.generatedAt))}</div></div>
+      <div class="card"><strong>Pages scanned</strong><div>${escapeHtml(summary.totals?.pagesScanned ?? 0)}</div></div>
+      <div class="card"><strong>Pages failed</strong><div>${escapeHtml(summary.totals?.pagesFailed ?? 0)}</div></div>
+      <div class="card"><strong>Total violations</strong><div>${escapeHtml(summary.totals?.totalViolations ?? 0)}</div></div>
+      <div class="card"><strong>Total incomplete</strong><div>${escapeHtml(summary.totals?.totalIncomplete ?? 0)}</div></div>
+      <div class="card"><strong>Unique rules</strong><div>${escapeHtml(summary.totals?.uniqueViolationRules ?? 0)}</div></div>
+      <div class="card"><strong>Crawl source</strong><div>${escapeHtml(summary.crawl?.source || '-')}</div></div>
     </div>
+
+    <h2>Published assets</h2>
+    <ul class="asset-list">
+      ${assetLinks.map(asset => `<li><a href="${toSafeHref(asset.href, { allowRelative: true })}">${escapeHtml(asset.label)}</a></li>`).join('')}
+    </ul>
 
     <h2>Top violations</h2>
     <table>
@@ -382,11 +502,23 @@ function buildHtmlReport(summary, results) {
       <tbody>${topRows}</tbody>
     </table>
 
+    <h2>Failures</h2>
+    <table>
+      <thead><tr><th>URL</th><th>Category</th><th>Message</th></tr></thead>
+      <tbody>${failureRows}</tbody>
+    </table>
+
+    <h2>Discovered URLs</h2>
+    ${urlsList}
+
     <h2>Per-page summary</h2>
     <table>
       <thead><tr><th>URL</th><th>Status</th><th>Violations</th><th>Incomplete</th><th>Error Category</th></tr></thead>
       <tbody>${pageRows}</tbody>
     </table>
+
+    <h2>Detailed findings by page</h2>
+    <div class="stack">${pageDetails}</div>
   </body>
 </html>`;
 }
@@ -456,19 +588,11 @@ async function main() {
       uniqueViolationRules: topViolations.length
     },
     failures: [...crawlResult.failures, ...results.filter(r => r.status === 'error').map(r => ({ url: r.url, category: r.category, message: r.message }))],
+    urls: crawlResult.urls,
     topViolations
   };
 
-  const html = buildHtmlReport(
-    {
-      targetUrl,
-      pagesScanned,
-      totalViolations,
-      totalIncomplete,
-      topViolations
-    },
-    results
-  );
+  const html = buildHtmlReport(summary, results);
 
   await Promise.all([
     fs.writeFile(path.join(outDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8'),
