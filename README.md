@@ -81,7 +81,9 @@ This repository includes a GitHub Pages dashboard in `/gh-pages` and scanning wo
   - Pages:
     - `gh-pages/data/latest.json`
     - `gh-pages/data/history.json`
+    - `gh-pages/data/report-index.json`
     - `gh-pages/reports/<run_id>/...`
+    - `gh-pages/reports.html`
   - Artifact: `webscan-<run_id>` (30-day retention)
 
 ### URL submission paths

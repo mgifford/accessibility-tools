@@ -13,6 +13,7 @@ permissions:
   actions: write
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   SCAN_REQUEST_LABEL: scan-request
   SCAN_QUEUED_LABEL: scan-queued
 
@@ -26,7 +27,7 @@ jobs:
 
     steps:
       - name: Parse issue and dispatch scan workflow
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner;
