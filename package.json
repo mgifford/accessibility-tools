@@ -17,6 +17,8 @@
     "next:build": "next build",
     "next:start": "next start",
     "next:lint": "next lint",
+    "test": "jest --no-coverage",
+    "test:coverage": "jest --coverage",
     "postinstall": "electron-builder install-app-deps",
     "build": "run-s next:build electron:build",
     "build:release": "run-s next:build electron:build:release",
