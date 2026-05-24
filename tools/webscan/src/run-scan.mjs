@@ -14,6 +14,8 @@ const DEFAULTS = {
   maxPagesHardCap: 100
 };
 
+const BOT_USER_AGENT = 'accessibility-tools-bot/1.0 (+https://github.com/mgifford/accessibility-tools)';
+
 function parseArgs(argv) {
   const args = {};
   let i = 0;
@@ -36,24 +38,95 @@ function parseArgs(argv) {
   return args;
 }
 
-function sanitizeTargetUrl(url) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error('Invalid URL input.');
-  }
-
-  if (!isHttpUrl(parsed.toString())) {
+function assertPublicTargetUrl(url) {
+  if (!isHttpUrl(url)) {
     throw new Error('Only http/https URLs are allowed.');
   }
 
-  const hostname = getHostname(parsed.toString());
+  const hostname = getHostname(url);
   if (isPrivateOrInternalHostname(hostname)) {
     throw new Error('Private/internal IP ranges are not allowed.');
   }
+}
 
-  return canonicalizeUrl(parsed.toString());
+function buildTargetUrlCandidates(input) {
+  const normalizedInput = String(input || '').trim();
+  if (!normalizedInput) {
+    throw new Error('Invalid URL input.');
+  }
+
+  const hasScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(normalizedInput);
+  const parsed = new URL(hasScheme ? normalizedInput : `https://${normalizedInput}`);
+  const hostnameVariants = [parsed.hostname];
+
+  if (/[a-z]/i.test(parsed.hostname)) {
+    if (parsed.hostname.startsWith('www.')) {
+      hostnameVariants.push(parsed.hostname.slice(4));
+    } else {
+      hostnameVariants.push(`www.${parsed.hostname}`);
+    }
+  }
+
+  const candidates = [];
+  const protocols = hasScheme ? [parsed.protocol] : ['https:', 'http:'];
+  const pathSuffix = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  const hostVariants = hostnameVariants.map(hostname => (parsed.port ? `${hostname}:${parsed.port}` : hostname));
+
+  for (const protocol of protocols) {
+    for (const host of hostVariants) {
+      const candidate = new URL(pathSuffix || '/', `${protocol}//${host}`);
+      if (!candidate.pathname) {
+        candidate.pathname = '/';
+      }
+      candidates.push(candidate.toString());
+    }
+  }
+
+  return [...new Set(candidates)];
+}
+
+async function resolveTargetUrl(input, timeoutMs) {
+  let lastError = null;
+
+  for (const candidate of buildTargetUrlCandidates(input)) {
+    try {
+      assertPublicTargetUrl(candidate);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(candidate, {
+          signal: controller.signal,
+          headers: {
+            'user-agent': BOT_USER_AGENT
+          }
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        try {
+          await res.body?.cancel?.();
+        } catch {
+          // ignore cleanup errors
+        }
+
+        const resolved = canonicalizeUrl(res.url) || canonicalizeUrl(candidate);
+        assertPublicTargetUrl(resolved);
+        return resolved;
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`Could not reach a public URL for "${String(input || '').trim()}": ${lastError.message || 'request failed'}`);
+  }
+
+  throw new Error('Invalid URL input.');
 }
 
 function parseIntWithFallback(value, fallback) {
@@ -89,13 +162,35 @@ async function fetchText(url, timeoutMs) {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'user-agent': 'accessibility-tools-bot/1.0 (+https://github.com/mgifford/accessibility-tools)'
+        'user-agent': BOT_USER_AGENT
       }
     });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
     return await res.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchHtmlPage(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'user-agent': BOT_USER_AGENT
+      }
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return {
+      text: await res.text(),
+      finalUrl: canonicalizeUrl(res.url) || canonicalizeUrl(url) || url
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -208,8 +303,11 @@ async function crawlUrls({ targetUrl, depth, maxPages, timeoutMs, respectRobots 
     if (level > depth) continue;
 
     let html = '';
+    let pageUrl = url;
     try {
-      html = await fetchText(url, timeoutMs);
+      const response = await fetchHtmlPage(url, timeoutMs);
+      html = response.text;
+      pageUrl = response.finalUrl;
     } catch (error) {
       failures.push({
         url,
@@ -219,10 +317,22 @@ async function crawlUrls({ targetUrl, depth, maxPages, timeoutMs, respectRobots 
       continue;
     }
 
-    crawled.push(url);
+    if (!isSameHostname(targetUrl, pageUrl)) {
+      failures.push({
+        url,
+        category: 'redirect_out_of_scope',
+        message: `Redirected to a different hostname: ${pageUrl}`
+      });
+      continue;
+    }
+
+    seen.add(pageUrl);
+    if (!crawled.includes(pageUrl)) {
+      crawled.push(pageUrl);
+    }
     if (level === depth) continue;
 
-    const links = extractLinksFromHtml(html, url, targetUrl);
+    const links = extractLinksFromHtml(html, pageUrl, targetUrl);
     for (const next of links) {
       if (!seen.has(next)) {
         queue.push({ url: next, level: level + 1 });
@@ -527,10 +637,10 @@ async function main() {
   const argv = parseArgs(process.argv.slice(2));
   const outDir = path.resolve(argv.out || './scan-output');
 
-  const targetUrl = sanitizeTargetUrl(argv.url || argv.target_url || '');
+  const timeoutMs = Math.max(3000, Math.min(parseIntWithFallback(argv.timeout_ms, DEFAULTS.timeoutMs), 60000));
+  const targetUrl = await resolveTargetUrl(argv.url || argv.target_url || '', timeoutMs);
   const depth = Math.max(0, Math.min(parseIntWithFallback(argv.depth, DEFAULTS.depth), 5));
   const maxPages = Math.max(1, Math.min(parseIntWithFallback(argv.max_pages, DEFAULTS.maxPages), DEFAULTS.maxPagesHardCap));
-  const timeoutMs = Math.max(3000, Math.min(parseIntWithFallback(argv.timeout_ms, DEFAULTS.timeoutMs), 60000));
   const reportType = argv.report_type || DEFAULTS.reportType;
   const respectRobots = String(argv.respect_robots ?? DEFAULTS.respectRobots) !== 'false';
 
