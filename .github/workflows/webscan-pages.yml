@@ -425,6 +425,24 @@ jobs:
               });
             }
 
+      - name: Remove scan-queued label on failure
+        if: failure() && steps.resolve.outputs.issue_number != ''
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const issueNumber = Number.parseInt(`${{ steps.resolve.outputs.issue_number }}`, 10);
+            if (!Number.isFinite(issueNumber) || issueNumber <= 0) return;
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                name: 'scan-queued'
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+
       - name: Workflow summary
         if: always()
         run: |

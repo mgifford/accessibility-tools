@@ -92,7 +92,11 @@ jobs:
                   continue;
                 }
 
-                if (labels.has(process.env.SCAN_QUEUED_LABEL)) {
+                const isIssueTriggered = !!triggeredIssueNumber;
+                const alreadyQueued = labels.has(process.env.SCAN_QUEUED_LABEL);
+
+                if (isIssueTriggered && alreadyQueued) {
+                  // Prevent rapid re-dispatch when an issue event fires on an already-queued issue
                   continue;
                 }
 
@@ -132,6 +136,20 @@ jobs:
                   continue;
                 }
 
+                // If the issue is being re-queued (scan was stuck), remove the stale label first
+                if (alreadyQueued) {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      owner,
+                      repo,
+                      issue_number: currentIssueNumber,
+                      name: process.env.SCAN_QUEUED_LABEL
+                    });
+                  } catch (removeError) {
+                    if (removeError.status !== 404) throw removeError;
+                  }
+                }
+
                 await github.rest.actions.createWorkflowDispatch({
                   owner,
                   repo,
@@ -150,7 +168,9 @@ jobs:
                   owner,
                   repo,
                   issue_number: currentIssueNumber,
-                  body: `Scan request queued. Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
+                  body: alreadyQueued
+                    ? `♻️ Scan re-queued (previous scan did not complete). Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
+                    : `Scan request queued. Track progress in Actions: https://github.com/${owner}/${repo}/actions/workflows/webscan-pages.yml`
                 });
 
                 await github.rest.issues.addLabels({
