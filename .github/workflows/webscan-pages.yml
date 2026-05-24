@@ -211,6 +211,7 @@ jobs:
             );
 
       - name: Restore recent report assets
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -221,9 +222,25 @@ jobs:
           import json
           import os
           import shutil
+          import urllib.parse
           import urllib.request
           import zipfile
           from pathlib import Path
+
+          class _NoAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+              """Strip the Authorization header when following redirects to non-GitHub hosts.
+
+              GitHub's artifact download endpoint returns a 302 redirect to Azure Blob
+              Storage.  Forwarding the bearer token to a third-party host causes a 401
+              because Azure does not accept GitHub tokens as authentication.
+              """
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
+                  if new_req is not None:
+                      parsed = urllib.parse.urlparse(newurl)
+                      if 'github.com' not in (parsed.netloc or ''):
+                          new_req.remove_header('Authorization')
+                  return new_req
 
           manifest_path = Path('.tmp/report-artifacts.json')
           if not manifest_path.exists():
@@ -234,7 +251,9 @@ jobs:
           except json.JSONDecodeError:
               runs = []
 
-          headers = {
+          opener = urllib.request.build_opener(_NoAuthOnRedirect)
+
+          auth_headers = {
               'Authorization': f"Bearer {os.environ['GITHUB_TOKEN']}",
               'Accept': 'application/vnd.github+json',
               'X-GitHub-Api-Version': '2022-11-28'
@@ -250,8 +269,8 @@ jobs:
                   shutil.rmtree(target_dir)
               target_dir.mkdir(parents=True, exist_ok=True)
 
-              request = urllib.request.Request(download_url, headers=headers)
-              with urllib.request.urlopen(request, timeout=90) as response:
+              request = urllib.request.Request(download_url, headers=auth_headers)
+              with opener.open(request, timeout=90) as response:
                   payload = response.read()
 
               with zipfile.ZipFile(io.BytesIO(payload)) as archive:
@@ -295,6 +314,7 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
+            const fs = require('node:fs');
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issueNumber = Number.parseInt(`${{ steps.resolve.outputs.issue_number }}`, 10);
@@ -323,30 +343,75 @@ jobs:
               return;
             }
 
+            // Build a rich scan summary from the scan output
+            let summary = null;
+            try {
+              summary = JSON.parse(fs.readFileSync('/tmp/webscan-output/summary.json', 'utf8'));
+            } catch {
+              core.warning('Could not read summary.json; using basic comment.');
+            }
+
+            const lines = ['✅ Scan complete.', ''];
+
+            if (summary) {
+              const t = summary.totals || {};
+              lines.push(`**Target:** ${summary.targetUrl}`);
+              lines.push(`**Scanned:** ${summary.generatedAt}`);
+              lines.push('');
+              lines.push('| Metric | Count |');
+              lines.push('|--------|-------|');
+              lines.push(`| Pages discovered | ${t.pagesDiscovered ?? 0} |`);
+              lines.push(`| Pages scanned | ${t.pagesScanned ?? 0} |`);
+              lines.push(`| Pages failed | ${t.pagesFailed ?? 0} |`);
+              lines.push(`| Total violations | ${t.totalViolations ?? 0} |`);
+              lines.push(`| Total incomplete | ${t.totalIncomplete ?? 0} |`);
+              lines.push(`| Unique violation rules | ${t.uniqueViolationRules ?? 0} |`);
+
+              const topViolations = (summary.topViolations || []).slice(0, 10);
+              if (topViolations.length > 0) {
+                lines.push('');
+                lines.push('### Top Violations');
+                lines.push('');
+                lines.push('| Rule | Impact | Pages | Nodes | Description |');
+                lines.push('|------|--------|-------|-------|-------------|');
+                for (const v of topViolations) {
+                  const desc = v.help ? `[${v.help}](${v.helpUrl})` : '-';
+                  lines.push(`| \`${v.id}\` | ${v.impact} | ${v.pagesAffected} | ${v.nodeCount} | ${desc} |`);
+                }
+              } else {
+                lines.push('');
+                lines.push('🎉 No accessibility violations were detected.');
+              }
+            }
+
+            lines.push('');
+            lines.push('### Reports');
+            lines.push('');
+            lines.push(`- [HTML report](${runReportUrl})`);
+            lines.push(`- [Latest HTML report](${latestReportUrl})`);
+            lines.push(`- [Latest summary JSON](${latestSummaryUrl})`);
+            lines.push(`- [Workflow run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId})`);
+
             await github.rest.issues.createComment({
               owner,
               repo,
               issue_number: issueNumber,
-              body: [
-                '✅ Scan complete.',
-                '',
-                `- Latest HTML report: ${latestReportUrl}`,
-                `- Run HTML report: ${runReportUrl}`,
-                `- Latest summary JSON: ${latestSummaryUrl}`,
-                `- Workflow run: ${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`
-              ].join('\n')
+              body: lines.join('\n')
             });
 
-            if (issueLabels.has('scan-queued')) {
-              try {
-                await github.rest.issues.removeLabel({
-                  owner,
-                  repo,
-                  issue_number: issueNumber,
-                  name: 'scan-queued'
-                });
-              } catch (error) {
-                if (error.status !== 404) throw error;
+            // Remove scan-queued and scan-request labels
+            for (const labelName of ['scan-queued', 'scan-request']) {
+              if (issueLabels.has(labelName)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    name: labelName
+                  });
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
               }
             }
 
@@ -355,7 +420,8 @@ jobs:
                 owner,
                 repo,
                 issue_number: issueNumber,
-                state: 'closed'
+                state: 'closed',
+                state_reason: 'completed'
               });
             }
 
