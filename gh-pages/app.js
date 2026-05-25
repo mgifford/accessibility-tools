@@ -226,7 +226,9 @@ async function loadHistory() {
     const response = await fetch('./data/history.json', { cache: 'no-store' });
     if (!response.ok) throw new Error(`Failed to load history: ${response.status}`);
     const data = await response.json();
-    const rows = (data.runs || []).slice(0, 20);
+    const rows = (data.runs || [])
+      .filter(run => run.conclusion === 'success' || run.status !== 'completed')
+      .slice(0, 20);
 
     historyRowsEl.innerHTML = rows
       .map(
@@ -238,7 +240,7 @@ async function loadHistory() {
           <td>${formatDate(run.createdAt)}</td>
           <td>
             <a href="${run.htmlUrl}" target="_blank" rel="noopener noreferrer">View run</a>
-            · <a href="./${run.reportUrl || `reports/${run.id}/report.html`}">HTML report</a>
+            ${run.reportAvailable ? ` · <a href="./${run.reportUrl || `reports/${run.id}/report.html`}">HTML report</a>` : ''}
             · <a href="./reports.html">Assets</a>
           </td>
         </tr>
