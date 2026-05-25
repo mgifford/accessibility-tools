@@ -44,7 +44,7 @@ describe('ADJUSTMENTS constants', () => {
       'SATURATION', 'CONTRAST', 'BACKGROUND_COLOR', 'HEADINGS_COLOR',
       'CONTENT_COLOR', 'BRIGHTNESS', 'KEYBOARD_NAVIGATION'
     ];
-    expectedKeys.forEach(key => {
+    expectedKeys.forEach((key) => {
       expect(ADJUSTMENTS).toHaveProperty(key);
     });
   });
@@ -66,7 +66,7 @@ describe('PROFILES constants', () => {
       'SEIZURE_SAFE', 'COLOR_BLIND', 'VISION_IMPAIRED',
       'ADHD', 'DYSLEXIA', 'COGNITIVE', 'KEYBOARD_NAVIGATION'
     ];
-    expectedKeys.forEach(key => {
+    expectedKeys.forEach((key) => {
       expect(PROFILES).toHaveProperty(key);
     });
   });
@@ -97,13 +97,13 @@ describe('LS_KEYS constants', () => {
 
 describe('adjustmentsConfigByProfile', () => {
   it('has config for every profile', () => {
-    Object.values(PROFILES).forEach(profile => {
+    Object.values(PROFILES).forEach((profile) => {
       expect(adjustmentsConfigByProfile).toHaveProperty(profile);
     });
   });
 
   it('each profile config has setConfig and resetConfig arrays', () => {
-    Object.values(PROFILES).forEach(profile => {
+    Object.values(PROFILES).forEach((profile) => {
       const config = adjustmentsConfigByProfile[profile];
       expect(Array.isArray(config.setConfig)).toBe(true);
       expect(Array.isArray(config.resetConfig)).toBe(true);
@@ -160,9 +160,9 @@ describe('adjustmentsConfigByProfile', () => {
   });
 
   it('each setConfig entry has prop and params', () => {
-    Object.values(PROFILES).forEach(profile => {
+    Object.values(PROFILES).forEach((profile) => {
       const config = adjustmentsConfigByProfile[profile];
-      config.setConfig.forEach(entry => {
+      config.setConfig.forEach((entry) => {
         expect(entry).toHaveProperty('prop');
         expect(entry).toHaveProperty('params');
       });
@@ -189,7 +189,7 @@ describe('COLOR_SLIDER_ITEMS', () => {
   });
 
   it('items have required shape', () => {
-    COLOR_SLIDER_ITEMS.forEach(item => {
+    COLOR_SLIDER_ITEMS.forEach((item) => {
       expect(item).toHaveProperty('id');
       expect(item).toHaveProperty('adjustment');
       expect(item).toHaveProperty('title');
@@ -203,7 +203,7 @@ describe('COLOR_CARD_ITEMS', () => {
   });
 
   it('items have required shape', () => {
-    COLOR_CARD_ITEMS.forEach(item => {
+    COLOR_CARD_ITEMS.forEach((item) => {
       expect(item).toHaveProperty('id');
       expect(item).toHaveProperty('adjustment');
       expect(item).toHaveProperty('description');
@@ -217,7 +217,7 @@ describe('CONTENT_SLIDER_ITEMS', () => {
   });
 
   it('all items have value 1', () => {
-    CONTENT_SLIDER_ITEMS.forEach(item => {
+    CONTENT_SLIDER_ITEMS.forEach((item) => {
       expect(item.value).toBe(1);
     });
   });

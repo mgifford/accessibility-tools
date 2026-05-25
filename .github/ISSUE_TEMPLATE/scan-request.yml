@@ -23,7 +23,7 @@ body:
     id: max_pages
     attributes:
       label: Max pages
-      description: 1-100 pages
+      description: 1-500 pages
       value: '25'
 
   - type: dropdown

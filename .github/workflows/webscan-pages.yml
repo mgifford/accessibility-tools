@@ -17,7 +17,7 @@ on:
         default: '2'
         type: string
       max_pages:
-        description: 'Max pages to scan (1-100)'
+        description: 'Max pages to scan (1-500)'
         required: false
         default: '25'
         type: string
@@ -50,7 +50,7 @@ concurrency:
 jobs:
   scan-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

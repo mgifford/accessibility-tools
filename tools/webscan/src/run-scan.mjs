@@ -11,7 +11,7 @@ const DEFAULTS = {
   timeoutMs: 20000,
   respectRobots: true,
   reportType: 'summary',
-  maxPagesHardCap: 100
+  maxPagesHardCap: 500
 };
 
 const BOT_USER_AGENT = 'accessibility-tools-bot/1.0 (+https://github.com/mgifford/accessibility-tools)';
@@ -218,6 +218,38 @@ function extractLinksFromHtml(html, pageUrl, baseUrl) {
   return [...links];
 }
 
+async function fetchSitemapPageUrls(xml, baseUrl, timeoutMs) {
+  // Sitemap index: contains <sitemap><loc>…</loc></sitemap> entries pointing to
+  // child sitemaps.  Fetch each child and collect the real page <loc> URLs.
+  if (/<sitemapindex[\s>]/i.test(xml)) {
+    const childUrls = [...xml.matchAll(/<loc>(.*?)<\/loc>/gi)]
+      .map(m => m[1]?.trim())
+      .filter(Boolean);
+    const pageUrls = new Set();
+    for (const childUrl of childUrls) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const childXml = await fetchText(childUrl, timeoutMs);
+        for (const match of childXml.matchAll(/<loc>(.*?)<\/loc>/gi)) {
+          const normalized = canonicalizeUrl(match[1]);
+          if (normalized && isSameHostname(baseUrl, normalized)) {
+            pageUrls.add(normalized);
+          }
+        }
+      } catch {
+        // skip unreachable child sitemaps
+      }
+    }
+    return [...pageUrls];
+  }
+
+  // Regular urlset sitemap: <loc> entries are page URLs.
+  return [...xml.matchAll(/<loc>(.*?)<\/loc>/gi)]
+    .map(m => canonicalizeUrl(m[1]))
+    .filter(Boolean)
+    .filter(url => isSameHostname(baseUrl, url));
+}
+
 async function readSitemapUrls(baseUrl, timeoutMs) {
   const host = new URL(baseUrl).origin;
   const candidates = [`${host}/sitemap.xml`];
@@ -236,10 +268,7 @@ async function readSitemapUrls(baseUrl, timeoutMs) {
   for (const sitemapUrl of [...new Set(candidates)]) {
     try {
       const xml = await fetchText(sitemapUrl, timeoutMs);
-      const urls = [...xml.matchAll(/<loc>(.*?)<\/loc>/gi)]
-        .map(m => canonicalizeUrl(m[1]))
-        .filter(Boolean)
-        .filter(url => isSameHostname(baseUrl, url));
+      const urls = await fetchSitemapPageUrls(xml, baseUrl, timeoutMs);
       if (urls.length) {
         return { urls: [...new Set(urls)], source: sitemapUrl };
       }
