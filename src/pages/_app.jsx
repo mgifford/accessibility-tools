@@ -2,17 +2,31 @@ import '@/constants/app.global.scss';
 import { condensed, mono, roboto } from '@/constants/fonts';
 import Snackbar from '@/modules/core/Snackbar';
 import UiProvider from '@/modules/core/UiProvider';
+import { initBrowserApi } from '@/services/init';
 import { useAccessibilityStore, useSystemStore, useUiStore } from '@/stores';
 import { AppCacheProvider } from '@mui/material-nextjs/v14-pagesRouter';
 import { ThemeProvider } from '@mui/material/styles';
 import classNames from 'classnames';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function MyApp(props) {
   const { Component, pageProps } = props;
   const { theme } = useUiStore();
+  const [apiReady, setApiReady] = useState(false);
+
+  // When running in a browser (not Electron), install the browser API shim
+  // and seed the IndexedDB on first visit before any window.api calls fire.
+  useEffect(() => {
+    const setup = async () => {
+      if (typeof window !== 'undefined' && !window.api) {
+        await initBrowserApi();
+      }
+      setApiReady(true);
+    };
+    setup();
+  }, []);
   const {
     standards,
     setStandards,
@@ -38,6 +52,7 @@ export default function MyApp(props) {
 
   // set standards
   useEffect(() => {
+    if (!apiReady) return;
     if (standards && standards.length > 0) {
       return;
     }
@@ -47,10 +62,11 @@ export default function MyApp(props) {
       setStandards(systemStandards);
     };
     getStandards();
-  }, []);
+  }, [apiReady]);
 
   // set criteria
   useEffect(() => {
+    if (!apiReady) return;
     if (criteria && criteria.length > 0) {
       return;
     }
@@ -60,10 +76,11 @@ export default function MyApp(props) {
       setCriteria(criteria);
     };
     getCriteria();
-  }, []);
+  }, [apiReady]);
 
   // set categories
   useEffect(() => {
+    if (!apiReady) return;
     if (categories && categories.length > 0) {
       return;
     }
@@ -73,10 +90,11 @@ export default function MyApp(props) {
       setCategories(categories);
     };
     getCategories();
-  }, []);
+  }, [apiReady]);
 
   // set technologies
   useEffect(() => {
+    if (!apiReady) return;
     if (technologies && technologies.length > 0) {
       return;
     }
@@ -86,10 +104,11 @@ export default function MyApp(props) {
       setTechnologies(technologies);
     };
     getTechnologies();
-  }, []);
+  }, [apiReady]);
 
   // set envs
   useEffect(() => {
+    if (!apiReady) return;
     if (environments && environments.length > 0) {
       return;
     }
@@ -99,10 +118,11 @@ export default function MyApp(props) {
       setEnvironments(envs);
     };
     getEnvironments();
-  }, []);
+  }, [apiReady]);
 
   // set countries
   useEffect(() => {
+    if (!apiReady) return;
     if (countries && countries.length > 0) {
       return;
     }
@@ -112,10 +132,11 @@ export default function MyApp(props) {
       setCountries(countries);
     };
     getCountries();
-  }, []);
+  }, [apiReady]);
 
   // set audit types
   useEffect(() => {
+    if (!apiReady) return;
     if (auditTypes && auditTypes.length > 0) {
       return;
     }
@@ -125,10 +146,11 @@ export default function MyApp(props) {
       setAuditTypes(auditTypes);
     };
     getAuditTypes();
-  }, []);
+  }, [apiReady]);
 
   // set landmarks
   useEffect(() => {
+    if (!apiReady) return;
     if (landmarks && landmarks.length > 0) {
       return;
     }
@@ -138,18 +160,20 @@ export default function MyApp(props) {
       setLandmarks(landmarks);
     };
     getLandmarks();
-  }, []);
+  }, [apiReady]);
 
   // init accessibility settings
   useEffect(() => {
+    if (!apiReady) return;
     const initSettings = async () => {
       const settings = await window.api.accessibilitySettings.read();
       await init(settings);
     };
     initSettings();
-  }, []);
+  }, [apiReady]);
 
   useEffect(() => {
+    if (!apiReady) return;
     if (imageBasePath) {
       return;
     }
@@ -158,9 +182,10 @@ export default function MyApp(props) {
       setImageBasePath(basePath);
     };
     setBasePath();
-  }, []);
+  }, [apiReady]);
 
   useEffect(() => {
+    if (!apiReady) return;
     window.addEventListener('error', e => window.system.log.error(e.error));
     window.addEventListener('unhandledrejection', e => window.system.log.rejection(e.reason));
 
@@ -173,7 +198,7 @@ export default function MyApp(props) {
       window.removeEventListener('unhandledrejection', e => window.system.log.rejection(e.reason));
       removeNavigateListener?.();
     };
-  }, []);
+  }, [apiReady]);
 
   return (
     <>
