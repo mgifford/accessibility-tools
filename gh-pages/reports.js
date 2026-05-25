@@ -9,6 +9,7 @@ function formatDate(value) {
 }
 
 function renderAssetLinks(run) {
+  if (!run.reportAvailable) return '-';
   const links = (run.assets || [])
     .map(asset => `<a href="./${asset.path}">${asset.label}</a>`)
     .join(' · ');
@@ -20,7 +21,9 @@ async function loadReports() {
     const response = await fetch('./data/report-index.json', { cache: 'no-store' });
     if (!response.ok) throw new Error(`Failed to load reports: ${response.status}`);
     const data = await response.json();
-    const runs = data.runs || [];
+    const runs = (data.runs || []).filter(
+      run => run.conclusion === 'success' || run.status !== 'completed'
+    );
 
     summaryEl.innerHTML = `
       <article class="card">
