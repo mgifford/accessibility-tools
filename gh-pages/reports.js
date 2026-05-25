@@ -1,6 +1,11 @@
 const summaryEl = document.getElementById('reports-summary');
 const rowsEl = document.getElementById('report-rows');
 
+function getDomain(url) {
+  if (!url) return '-';
+  try { return new URL(url).hostname; } catch { return url; }
+}
+
 function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
@@ -8,12 +13,14 @@ function formatDate(value) {
   return date.toLocaleString();
 }
 
-function renderAssetLinks(run) {
+function renderReportLinks(run) {
   if (!run.reportAvailable) return '-';
-  const links = (run.assets || [])
-    .map(asset => `<a href="./${asset.path}">${asset.label}</a>`)
-    .join(' · ');
-  return links || '-';
+  const htmlAsset = (run.assets || []).find(a => a.file === 'report.html');
+  const zipAsset = (run.assets || []).find(a => a.file === 'report.zip');
+  const links = [];
+  if (htmlAsset) links.push(`<a href="./${htmlAsset.path}">HTML report</a>`);
+  if (zipAsset && run.zipAvailable) links.push(`<a href="./${zipAsset.path}" download>Download ZIP</a>`);
+  return links.join(' · ') || '-';
 }
 
 async function loadReports() {
@@ -41,15 +48,20 @@ async function loadReports() {
     `;
 
     rowsEl.innerHTML = runs.length > 0
-      ? runs.map(run => `
-          <tr>
-            <td>${run.runNumber}</td>
-            <td>${run.status}${run.conclusion ? ` / ${run.conclusion}` : ''}</td>
-            <td>${formatDate(run.createdAt)}</td>
-            <td><div class="asset-list">${renderAssetLinks(run)}</div></td>
-            <td><a href="${run.htmlUrl}" target="_blank" rel="noopener noreferrer">View run</a></td>
-          </tr>
-        `).join('')
+      ? runs.map(run => {
+          const domain = run.targetUrl
+            ? `<a href="${run.targetUrl}" target="_blank" rel="noopener noreferrer">${getDomain(run.targetUrl)}</a>`
+            : '-';
+          return `
+            <tr>
+              <td>${domain}</td>
+              <td>${run.pagesScanned ?? '-'}</td>
+              <td>${run.totalViolations ?? '-'}</td>
+              <td>${formatDate(run.createdAt)}</td>
+              <td><div class="asset-list">${renderReportLinks(run)}</div></td>
+            </tr>
+          `;
+        }).join('')
       : '<tr><td colspan="5">No published reports found.</td></tr>';
   } catch (error) {
     summaryEl.innerHTML = `<article class="card">${error.message}</article>`;

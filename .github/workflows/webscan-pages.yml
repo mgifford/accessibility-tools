@@ -128,6 +128,7 @@ jobs:
             const workflowName = 'Web Accessibility Scan + Pages';
             const assetBaseNames = [
               { label: 'HTML report', file: 'report.html' },
+              { label: 'Download ZIP', file: 'report.zip' },
               { label: 'Summary JSON', file: 'summary.json' },
               { label: 'Results JSON', file: 'results.json' },
               { label: 'URLs JSON', file: 'urls.json' }
@@ -290,6 +291,10 @@ jobs:
           rm -rf "$LATEST_DIR"/*
           cp -R "$RUN_DIR"/. "$LATEST_DIR/"
 
+          # Create a downloadable ZIP of the current run's reports
+          (cd "$RUN_DIR" && zip -qr report.zip .)
+          cp "$RUN_DIR/report.zip" "$LATEST_DIR/report.zip"
+
       - name: Mark report availability
         run: |
           python3 - <<'PY'
@@ -304,6 +309,35 @@ jobs:
               data = json.loads(p.read_text(encoding='utf-8'))
               for run in data.get('runs', []):
                   run['reportAvailable'] = (reports_dir / str(run['id']) / 'report.html').exists()
+                  run['zipAvailable'] = (reports_dir / str(run['id']) / 'report.zip').exists()
+              p.write_text(json.dumps(data, indent=2), encoding='utf-8')
+          PY
+
+      - name: Enrich history with scan summary data
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          reports_dir = Path('gh-pages/reports')
+          for data_file in ['gh-pages/data/history.json', 'gh-pages/data/report-index.json']:
+              p = Path(data_file)
+              if not p.exists():
+                  continue
+              data = json.loads(p.read_text(encoding='utf-8'))
+              for run in data.get('runs', []):
+                  summary_path = reports_dir / str(run['id']) / 'summary.json'
+                  if not summary_path.exists():
+                      continue
+                  try:
+                      summary = json.loads(summary_path.read_text(encoding='utf-8'))
+                      run['targetUrl'] = summary.get('targetUrl', '')
+                      t = summary.get('totals', {})
+                      run['pagesScanned'] = t.get('pagesScanned', 0)
+                      run['totalViolations'] = t.get('totalViolations', 0)
+                      run['totalIncomplete'] = t.get('totalIncomplete', 0)
+                  except Exception:
+                      pass
               p.write_text(json.dumps(data, indent=2), encoding='utf-8')
           PY
 
