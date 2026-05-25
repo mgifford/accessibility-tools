@@ -12,6 +12,7 @@ env:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -28,6 +29,199 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Build report metadata
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowName = 'Web Accessibility Scan + Pages';
+            const assetBaseNames = [
+              { label: 'HTML report', file: 'report.html' },
+              { label: 'Summary JSON', file: 'summary.json' },
+              { label: 'Results JSON', file: 'results.json' },
+              { label: 'URLs JSON', file: 'urls.json' }
+            ];
+
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const scanRuns = [];
+            for (const run of runs.filter(r => r.name === workflowName).slice(0, 50)) {
+              const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner,
+                repo,
+                run_id: run.id,
+                per_page: 100
+              });
+
+              const artifact = (data.artifacts || []).find(candidate => candidate.name === `webscan-${run.id}`)
+                || (data.artifacts || []).find(candidate => candidate.name.startsWith('webscan-'))
+                || null;
+
+              scanRuns.push({
+                id: run.id,
+                runNumber: run.run_number,
+                status: run.status,
+                conclusion: run.conclusion,
+                event: run.event,
+                createdAt: run.created_at,
+                updatedAt: run.updated_at,
+                htmlUrl: run.html_url,
+                reportUrl: `reports/${run.id}/report.html`,
+                assets: assetBaseNames.map(asset => ({
+                  label: asset.label,
+                  file: asset.file,
+                  path: `reports/${run.id}/${asset.file}`
+                })),
+                artifact: artifact ? {
+                  id: artifact.id,
+                  name: artifact.name,
+                  expired: artifact.expired,
+                  downloadUrl: artifact.archive_download_url
+                } : null
+              });
+            }
+
+            const reportIndex = {
+              schemaVersion: 1,
+              generatedAt: new Date().toISOString(),
+              workflowName,
+              latestReportUrl: 'reports/latest/report.html',
+              runs: scanRuns
+            };
+
+            const history = {
+              schemaVersion: 2,
+              generatedAt: reportIndex.generatedAt,
+              workflowName,
+              runs: scanRuns.map(({ artifact, assets, ...run }) => ({
+                ...run,
+                artifactId: artifact?.id || null
+              }))
+            };
+
+            const dataDir = path.join(process.cwd(), 'gh-pages', 'data');
+            const tempDir = path.join(process.cwd(), '.tmp');
+            fs.mkdirSync(dataDir, { recursive: true });
+            fs.mkdirSync(tempDir, { recursive: true });
+            fs.writeFileSync(path.join(dataDir, 'history.json'), JSON.stringify(history, null, 2));
+            fs.writeFileSync(path.join(dataDir, 'report-index.json'), JSON.stringify(reportIndex, null, 2));
+            fs.writeFileSync(
+              path.join(tempDir, 'report-artifacts.json'),
+              JSON.stringify(
+                scanRuns.filter(run => run.artifact?.downloadUrl && !run.artifact?.expired),
+                null,
+                2
+              )
+            );
+
+      - name: Restore recent report assets
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import io
+          import json
+          import os
+          import shutil
+          import urllib.parse
+          import urllib.request
+          import zipfile
+          from pathlib import Path
+
+          class _NoAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+              """Strip the Authorization header when following redirects to non-GitHub hosts."""
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
+                  if new_req is not None:
+                      parsed = urllib.parse.urlparse(newurl)
+                      if 'github.com' not in (parsed.netloc or ''):
+                          new_req.remove_header('Authorization')
+                  return new_req
+
+          manifest_path = Path('.tmp/report-artifacts.json')
+          if not manifest_path.exists():
+              raise SystemExit(0)
+
+          try:
+              runs = json.loads(manifest_path.read_text(encoding='utf-8'))
+          except json.JSONDecodeError:
+              runs = []
+
+          opener = urllib.request.build_opener(_NoAuthOnRedirect)
+
+          auth_headers = {
+              'Authorization': f"Bearer {os.environ['GITHUB_TOKEN']}",
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+          }
+
+          for run in runs:
+              download_url = ((run.get('artifact') or {}).get('downloadUrl') or '').strip()
+              if not download_url:
+                  continue
+
+              target_dir = Path('gh-pages') / 'reports' / str(run['id'])
+              if target_dir.exists():
+                  shutil.rmtree(target_dir)
+              target_dir.mkdir(parents=True, exist_ok=True)
+
+              request = urllib.request.Request(download_url, headers=auth_headers)
+              with opener.open(request, timeout=90) as response:
+                  payload = response.read()
+
+              with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                  archive.extractall(target_dir)
+          PY
+
+      - name: Update latest report from most recent scan
+        run: |
+          set -euo pipefail
+
+          LATEST_RUN_ID=$(python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+
+          history_path = Path('gh-pages/data/history.json')
+          if not history_path.exists():
+              sys.exit(0)
+
+          history = json.loads(history_path.read_text())
+          reports_dir = Path('gh-pages/reports')
+
+          for run in history.get('runs', []):
+              run_id = str(run['id'])
+              run_dir = reports_dir / run_id
+              if (run_dir / 'report.html').exists():
+                  print(run_id)
+                  break
+          PY
+          )
+
+          if [ -n "$LATEST_RUN_ID" ]; then
+            echo "Using run $LATEST_RUN_ID as latest"
+            LATEST_DIR="gh-pages/reports/latest"
+            RUN_DIR="gh-pages/reports/$LATEST_RUN_ID"
+            mkdir -p "$LATEST_DIR"
+            rm -rf "$LATEST_DIR"/*
+            cp -R "$RUN_DIR"/. "$LATEST_DIR/"
+            if [ -f "$RUN_DIR/summary.json" ]; then
+              cp "$RUN_DIR/summary.json" gh-pages/data/latest.json
+            fi
+          else
+            echo "No restored run found; keeping placeholder latest"
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
