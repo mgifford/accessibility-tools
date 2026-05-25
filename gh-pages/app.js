@@ -194,6 +194,11 @@ function openIssueQueue() {
   watchForCreatedIssue(inputs, Date.now());
 }
 
+function getDomain(url) {
+  if (!url) return '-';
+  try { return new URL(url).hostname; } catch { return url; }
+}
+
 function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
@@ -232,19 +237,27 @@ async function loadHistory() {
 
     historyRowsEl.innerHTML = rows
       .map(
-        run => `
-        <tr>
-          <td>${run.runNumber}</td>
-          <td>${run.status}${run.conclusion ? ` / ${run.conclusion}` : ''}</td>
-          <td>${run.event || '-'}</td>
-          <td>${formatDate(run.createdAt)}</td>
-          <td>
-            <a href="${run.htmlUrl}" target="_blank" rel="noopener noreferrer">View run</a>
-            ${run.reportAvailable ? ` · <a href="./${run.reportUrl || `reports/${run.id}/report.html`}">HTML report</a>` : ''}
-            · <a href="./reports.html">Assets</a>
-          </td>
-        </tr>
-      `
+        run => {
+          const domain = run.targetUrl
+            ? `<a href="${run.targetUrl}" target="_blank" rel="noopener noreferrer">${getDomain(run.targetUrl)}</a>`
+            : '-';
+          const reportLink = run.reportAvailable
+            ? `<a href="./${run.reportUrl || `reports/${run.id}/report.html`}">HTML report</a>`
+            : '';
+          const zipLink = run.zipAvailable
+            ? `<a href="./reports/${run.id}/report.zip" download>Download ZIP</a>`
+            : '';
+          const reportLinks = [reportLink, zipLink].filter(Boolean).join(' · ') || '-';
+          return `
+            <tr>
+              <td>${domain}</td>
+              <td>${run.pagesScanned ?? '-'}</td>
+              <td>${run.totalViolations ?? '-'}</td>
+              <td>${formatDate(run.createdAt)}</td>
+              <td>${reportLinks}</td>
+            </tr>
+          `;
+        }
       )
       .join('');
 
