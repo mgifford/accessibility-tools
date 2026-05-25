@@ -24,7 +24,7 @@ describe('AUDIT_ITEM_CHAPTER_TYPES', () => {
 
 describe('AUDIT_ITEM_TYPE_VALUES', () => {
   it('contains all values from AUDIT_ITEM_CHAPTER_TYPES', () => {
-    Object.values(AUDIT_ITEM_CHAPTER_TYPES).forEach(val => {
+    Object.values(AUDIT_ITEM_CHAPTER_TYPES).forEach((val) => {
       expect(AUDIT_ITEM_TYPE_VALUES).toContain(val);
     });
   });
@@ -41,7 +41,7 @@ describe('AUDIT_ITEM_LEVEL_VALUES', () => {
       'NOT_APPLICABLE', 'NOT_EVALUATED',
       'PASSED', 'FAILED', 'CANNOT_TELL'
     ];
-    expected.forEach(val => {
+    expected.forEach((val) => {
       expect(AUDIT_ITEM_LEVEL_VALUES).toContain(val);
     });
   });
@@ -57,7 +57,7 @@ describe('LEVEL_OPTIONS_WCAG_ATAG', () => {
   });
 
   it('each option has value and label', () => {
-    LEVEL_OPTIONS_WCAG_ATAG.forEach(opt => {
+    LEVEL_OPTIONS_WCAG_ATAG.forEach((opt) => {
       expect(opt).toHaveProperty('value');
       expect(opt).toHaveProperty('label');
     });
@@ -82,7 +82,7 @@ describe('LEVEL_OPTIONS_VPAT', () => {
   });
 
   it('each option has value and label', () => {
-    LEVEL_OPTIONS_VPAT.forEach(opt => {
+    LEVEL_OPTIONS_VPAT.forEach((opt) => {
       expect(opt).toHaveProperty('value');
       expect(opt).toHaveProperty('label');
     });
