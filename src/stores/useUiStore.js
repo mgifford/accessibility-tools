@@ -33,7 +33,7 @@ export const useUiStore = create(set => ({
   ...initialState,
   setColorMode: colorMode => set(() => {
     const theme = createTheme(getDesignTokens(colorMode));
-    window.api.theme.set(colorMode);
+    window.api?.theme?.set(colorMode);
     return {
       colorMode,
       theme
