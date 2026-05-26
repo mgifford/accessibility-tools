@@ -4,6 +4,15 @@ import process from 'node:process';
 import { chromium } from 'playwright';
 import axe from 'axe-core';
 import { canonicalizeUrl, getHostname, isHttpUrl, isPrivateOrInternalHostname, isSameHostname } from '../../../src/shared/webscan/crawl-core.mjs';
+import {
+  parseArgs,
+  parseIntWithFallback,
+  parseRobotsRules,
+  summarizeViolations,
+  escapeHtml,
+  toSafeHref,
+  formatTimestamp
+} from './scan-utils.mjs';
 
 const DEFAULTS = {
   depth: 2,
@@ -15,28 +24,6 @@ const DEFAULTS = {
 };
 
 const BOT_USER_AGENT = 'accessibility-tools-bot/1.0 (+https://github.com/mgifford/accessibility-tools)';
-
-function parseArgs(argv) {
-  const args = {};
-  let i = 0;
-  while (i < argv.length) {
-    const raw = argv[i];
-    if (!raw.startsWith('--')) {
-      i += 1;
-      continue;
-    }
-    const key = raw.slice(2);
-    const next = argv[i + 1];
-    if (!next || next.startsWith('--')) {
-      args[key] = 'true';
-      i += 1;
-      continue;
-    }
-    args[key] = next;
-    i += 2;
-  }
-  return args;
-}
 
 function assertPublicTargetUrl(url) {
   if (!isHttpUrl(url)) {
@@ -127,32 +114,6 @@ async function resolveTargetUrl(input, timeoutMs) {
   }
 
   throw new Error('Invalid URL input.');
-}
-
-function parseIntWithFallback(value, fallback) {
-  const n = Number.parseInt(String(value), 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function parseRobotsRules(robotsText = '') {
-  const disallow = [];
-  const lines = robotsText.split(/\r?\n/);
-  let active = false;
-  for (const line of lines) {
-    const normalized = line.trim();
-    if (!normalized || normalized.startsWith('#')) continue;
-    const [rawKey, ...rest] = normalized.split(':');
-    const key = rawKey.trim().toLowerCase();
-    const value = rest.join(':').trim();
-    if (key === 'user-agent') {
-      active = value === '*' || value === 'accessibility-tools-bot';
-      continue;
-    }
-    if (active && key === 'disallow' && value) {
-      disallow.push(value);
-    }
-  }
-  return disallow;
 }
 
 async function fetchText(url, timeoutMs) {
@@ -459,64 +420,11 @@ async function scanUrl(browser, url, timeoutMs) {
   }
 }
 
-function summarizeViolations(results) {
-  const map = new Map();
-  for (const page of results) {
-    if (page.status !== 'ok') continue;
-    for (const violation of page.violations) {
-      const existing = map.get(violation.id) || {
-        id: violation.id,
-        impact: violation.impact,
-        help: violation.help,
-        helpUrl: violation.helpUrl,
-        pagesAffected: 0,
-        nodeCount: 0
-      };
-      existing.pagesAffected += 1;
-      existing.nodeCount += violation.nodes.length;
-      map.set(violation.id, existing);
-    }
-  }
-
-  return [...map.values()].sort((a, b) => b.nodeCount - a.nodeCount);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function toSafeHref(value, { allowRelative = false } = {}) {
-  const href = String(value ?? '').trim();
-  if (!href) return '#';
-  if (allowRelative && !href.includes(':')) {
-    return escapeHtml(href);
-  }
-  try {
-    const parsed = new URL(href);
-    if (['http:', 'https:'].includes(parsed.protocol)) {
-      return escapeHtml(parsed.toString());
-    }
-  } catch {
-    return '#';
-  }
-  return '#';
-}
-
-function formatTimestamp(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : date.toISOString();
-}
-
-function buildHtmlReport(summary, results) {
+function buildHtmlReport(summary, results, reportType = 'summary') {
   const assetLinks = [
     { label: 'HTML report', href: 'report.html' },
     { label: 'Summary JSON', href: 'summary.json' },
-    { label: 'Results JSON', href: 'results.json' },
+    ...(reportType === 'full' ? [{ label: 'Results JSON', href: 'results.json' }] : []),
     { label: 'URLs JSON', href: 'urls.json' }
   ];
 
@@ -656,8 +564,8 @@ function buildHtmlReport(summary, results) {
       <tbody>${pageRows}</tbody>
     </table>
 
-    <h2>Detailed findings by page</h2>
-    <div class="stack">${pageDetails}</div>
+    ${reportType === 'full' ? `<h2>Detailed findings by page</h2>
+    <div class="stack">${pageDetails}</div>` : '<!-- Detailed per-page findings omitted for summary report. Use report_type=full to include them. -->'}
   </body>
 </html>`;
 }
@@ -731,14 +639,21 @@ async function main() {
     topViolations
   };
 
-  const html = buildHtmlReport(summary, results);
+  const html = buildHtmlReport(summary, results, reportType);
 
-  await Promise.all([
+  const writes = [
     fs.writeFile(path.join(outDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8'),
-    fs.writeFile(path.join(outDir, 'results.json'), `${JSON.stringify(results, null, 2)}\n`, 'utf8'),
     fs.writeFile(path.join(outDir, 'report.html'), html, 'utf8'),
     fs.writeFile(path.join(outDir, 'urls.json'), `${JSON.stringify(crawlResult.urls, null, 2)}\n`, 'utf8')
-  ]);
+  ];
+
+  // results.json contains per-page violation details and can be very large.
+  // Only write it for full reports to keep summary reports lightweight.
+  if (reportType === 'full') {
+    writes.push(fs.writeFile(path.join(outDir, 'results.json'), `${JSON.stringify(results, null, 2)}\n`, 'utf8'));
+  }
+
+  await Promise.all(writes);
 }
 
 main().catch((error) => {
