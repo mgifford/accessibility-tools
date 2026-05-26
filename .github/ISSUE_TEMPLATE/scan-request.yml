@@ -30,6 +30,14 @@ body:
     id: report_type
     attributes:
       label: Report type
+      description: >
+        **summary** — lightweight report with aggregate statistics and top violations only.
+        Faster to generate and much smaller output. Recommended for large sites or quick checks.
+        Does not include per-page violation details or a full results JSON file.
+
+        **full** — complete report including per-page violation details in the HTML report
+        and a `results.json` file with every individual finding. Best for deep analysis,
+        but can be very large (tens of MB) for sites with many violations.
       options:
         - summary
         - full

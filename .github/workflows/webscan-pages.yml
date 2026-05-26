@@ -476,17 +476,39 @@ jobs:
               });
             }
 
-      - name: Remove scan-queued label on failure
+      - name: Comment and update scan request issue on failure
         if: failure() && steps.resolve.outputs.issue_number != ''
         uses: actions/github-script@v9
         with:
           script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
             const issueNumber = Number.parseInt(`${{ steps.resolve.outputs.issue_number }}`, 10);
             if (!Number.isFinite(issueNumber) || issueNumber <= 0) return;
+
+            const targetUrl = `${{ steps.resolve.outputs.target_url }}` || '(unknown)';
+            const workflowRunUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const body = [
+              '❌ Scan failed.',
+              '',
+              `**Target:** ${targetUrl}`,
+              `**Workflow run:** ${workflowRunUrl}`,
+              '',
+              '**Common causes:**',
+              '- The target site returned an HTTP error (e.g. 403 Forbidden) and blocked the scanner.',
+              '- The target URL could not be reached (DNS failure, timeout, etc.).',
+              '- The scan exceeded the workflow time limit.',
+              '',
+              'You can re-open this issue or create a new scan request once the target is accessible.'
+            ].join('\n');
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: issueNumber, body });
+
             try {
               await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner,
+                repo,
                 issue_number: issueNumber,
                 name: 'scan-queued'
               });
