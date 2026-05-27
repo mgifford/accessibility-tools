@@ -231,9 +231,23 @@ async function loadHistory() {
     const response = await fetch('./data/history.json', { cache: 'no-store' });
     if (!response.ok) throw new Error(`Failed to load history: ${response.status}`);
     const data = await response.json();
-    const rows = (data.runs || [])
-      .filter(run => run.conclusion === 'success' || run.status !== 'completed')
-      .slice(0, 20);
+
+    const cutoff = Date.now() - 31 * 24 * 60 * 60 * 1000;
+
+    const allRuns = (data.runs || [])
+      .filter(run => run.conclusion === 'success' || run.status !== 'completed');
+
+    const rows = allRuns.filter(run => {
+      if (!run.createdAt) return true; // treat undated runs as active
+      const ts = new Date(run.createdAt).getTime();
+      return Number.isFinite(ts) && ts >= cutoff;
+    });
+
+    const archiveCount = allRuns.filter(run => {
+      if (!run.createdAt) return false;
+      const ts = new Date(run.createdAt).getTime();
+      return Number.isFinite(ts) && ts < cutoff;
+    }).length;
 
     historyRowsEl.innerHTML = rows
       .map(
@@ -248,13 +262,19 @@ async function loadHistory() {
             ? `<a href="./reports/${run.id}/report.zip" download>Download ZIP</a>`
             : '';
           const reportLinks = [reportLink, zipLink].filter(Boolean).join(' · ') || '-';
+          const violations = run.totalViolations ?? '-';
+          const violationsCell = typeof violations === 'number' && violations === 0
+            ? `<span class="badge badge--zero">${violations}</span>`
+            : typeof violations === 'number' && violations > 0
+              ? `<span class="badge badge--warn">${violations}</span>`
+              : violations;
           return `
             <tr>
               <td>${domain}</td>
               <td>${run.pagesScanned ?? '-'}</td>
-              <td>${run.totalViolations ?? '-'}</td>
+              <td>${violationsCell}</td>
               <td>${formatDate(run.createdAt)}</td>
-              <td>${reportLinks}</td>
+              <td><div class="asset-list">${reportLinks}</div></td>
             </tr>
           `;
         }
@@ -262,7 +282,17 @@ async function loadHistory() {
       .join('');
 
     if (rows.length === 0) {
-      historyRowsEl.innerHTML = '<tr><td colspan="5">No runs found.</td></tr>';
+      historyRowsEl.innerHTML = '<tr><td colspan="5">No runs in the last 31 days.</td></tr>';
+    }
+
+    if (archiveCount > 0) {
+      const banner = document.createElement('div');
+      banner.className = 'archive-banner';
+      banner.innerHTML = `
+        <span><strong>${archiveCount}</strong> older run${archiveCount === 1 ? '' : 's'} (more than 31 days ago) are not shown here.</span>
+        <a href="./archive.html" class="btn btn-secondary">View archive</a>
+      `;
+      historyRowsEl.closest('section').insertBefore(banner, historyRowsEl.closest('.table-wrapper'));
     }
   } catch (error) {
     historyRowsEl.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
