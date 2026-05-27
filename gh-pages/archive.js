@@ -62,8 +62,9 @@ async function loadArchive() {
     const merged = mergeRuns(historyRuns, indexRuns);
 
     const archiveRuns = merged.filter(run => {
-      const ts = run.createdAt ? new Date(run.createdAt).getTime() : Infinity;
-      return run.createdAt && ts < cutoff;
+      if (!run.createdAt) return false;
+      const ts = new Date(run.createdAt).getTime();
+      return Number.isFinite(ts) && ts < cutoff;
     });
 
     // Sort newest first

@@ -36,13 +36,15 @@ async function loadReports() {
     );
 
     const runs = allRuns.filter(run => {
-      const ts = run.createdAt ? new Date(run.createdAt).getTime() : 0;
-      return !run.createdAt || ts >= cutoff;
+      if (!run.createdAt) return true; // treat undated runs as active
+      const ts = new Date(run.createdAt).getTime();
+      return Number.isFinite(ts) && ts >= cutoff;
     });
 
     const archiveCount = allRuns.filter(run => {
-      const ts = run.createdAt ? new Date(run.createdAt).getTime() : 0;
-      return run.createdAt && ts < cutoff;
+      if (!run.createdAt) return false;
+      const ts = new Date(run.createdAt).getTime();
+      return Number.isFinite(ts) && ts < cutoff;
     }).length;
 
     summaryEl.innerHTML = `

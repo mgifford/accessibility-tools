@@ -83,7 +83,7 @@ text and UI components).
 | `--line-height-base` | `1.6` |
 
 - All font sizes use `rem` units so they scale with the user's browser setting.
-- Minimum body text size: 1 rem (16 px equivalent).
+- Minimum body text size: 1 rem (16px equivalent).
 
 ### Spacing scale
 
