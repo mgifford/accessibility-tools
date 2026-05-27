@@ -99,13 +99,13 @@ describe('summarizeViolations', () => {
       {
         status: 'ok',
         violations: [
-          { id: 'color-contrast', impact: 'serious', help: 'Fix contrast', helpUrl: 'https://example.com', nodes: [{}, {}] }
+          { id: 'color-contrast', impact: 'serious', help: 'Fix contrast', helpUrl: 'https://example.com', source: 'axe-core', nodes: [{}, {}] }
         ]
       },
       {
         status: 'ok',
         violations: [
-          { id: 'color-contrast', impact: 'serious', help: 'Fix contrast', helpUrl: 'https://example.com', nodes: [{}] }
+          { id: 'color-contrast', impact: 'serious', help: 'Fix contrast', helpUrl: 'https://example.com', source: 'axe-core', nodes: [{}] }
         ]
       }
     ];
@@ -114,6 +114,20 @@ describe('summarizeViolations', () => {
     assert.equal(summary[0].id, 'color-contrast');
     assert.equal(summary[0].pagesAffected, 2);
     assert.equal(summary[0].nodeCount, 3);
+    assert.equal(summary[0].source, 'axe-core');
+  });
+
+  it('uses axe-core as default source when source field is absent', () => {
+    const results = [
+      {
+        status: 'ok',
+        violations: [
+          { id: 'image-alt', impact: 'critical', help: 'Images need alt text', helpUrl: 'https://example.com', nodes: [{}] }
+        ]
+      }
+    ];
+    const summary = summarizeViolations(results);
+    assert.equal(summary[0].source, 'axe-core');
   });
 
   it('sorts by nodeCount descending', () => {

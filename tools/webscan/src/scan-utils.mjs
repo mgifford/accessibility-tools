@@ -61,6 +61,7 @@ export function summarizeViolations(results) {
         impact: violation.impact,
         help: violation.help,
         helpUrl: violation.helpUrl,
+        source: violation.source || 'axe-core',
         pagesAffected: 0,
         nodeCount: 0
       };
