@@ -380,6 +380,7 @@ async function scanUrl(browser, url, timeoutMs) {
         help: v.help,
         helpUrl: v.helpUrl,
         tags: v.tags,
+        source: 'axe-core',
         nodes: (v.nodes || []).map(node => ({
           target: node.target,
           html: node.html,
@@ -393,6 +394,7 @@ async function scanUrl(browser, url, timeoutMs) {
         help: v.help,
         helpUrl: v.helpUrl,
         tags: v.tags,
+        source: 'axe-core',
         nodes: (v.nodes || []).map(node => ({
           target: node.target,
           html: node.html,
@@ -428,12 +430,21 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
     { label: 'URLs JSON', href: 'urls.json' }
   ];
 
+  // Collect the distinct scan tools used across all findings
+  const toolsUsed = new Set();
+  for (const r of results) {
+    for (const v of [...(r.violations || []), ...(r.incomplete || [])]) {
+      toolsUsed.add(v.source || 'axe-core');
+    }
+  }
+  const toolsLabel = toolsUsed.size > 0 ? [...toolsUsed].join(', ') : 'axe-core';
+
   const topRows = summary.topViolations.length > 0
     ? summary.topViolations
       .slice(0, 20)
-      .map(v => `<tr><td>${escapeHtml(v.id)}</td><td>${escapeHtml(v.impact)}</td><td>${escapeHtml(v.pagesAffected)}</td><td>${escapeHtml(v.nodeCount)}</td><td><a href="${toSafeHref(v.helpUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.help)}</a></td></tr>`)
+      .map(v => `<tr><td>${escapeHtml(v.id)}</td><td>${escapeHtml(v.impact)}</td><td>${escapeHtml(v.source || 'axe-core')}</td><td>${escapeHtml(v.pagesAffected)}</td><td>${escapeHtml(v.nodeCount)}</td><td><a href="${toSafeHref(v.helpUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.help)}</a></td></tr>`)
       .join('')
-    : '<tr><td colspan="5">No accessibility violations were detected.</td></tr>';
+    : '<tr><td colspan="6">No accessibility violations were detected.</td></tr>';
 
   const pageRows = results
     .map(r => `<tr><td><a href="${toSafeHref(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.url)}</a></td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.violationCount)}</td><td>${escapeHtml(r.incompleteCount)}</td><td>${escapeHtml(r.category || '')}</td></tr>`)
@@ -454,8 +465,9 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
       const violationsMarkup = result.violations.length > 0
         ? result.violations.map((violation) => `
             <details>
-              <summary><strong>${escapeHtml(violation.id)}</strong> (${escapeHtml(violation.impact)}) — ${escapeHtml(violation.help)}</summary>
+              <summary><strong>${escapeHtml(violation.id)}</strong> (${escapeHtml(violation.impact)}) — ${escapeHtml(violation.help)} <span class="source-badge">${escapeHtml(violation.source || 'axe-core')}</span></summary>
               <p>${escapeHtml(violation.description)}</p>
+              <p><strong>Source:</strong> ${escapeHtml(violation.source || 'axe-core')}</p>
               <p><a href="${toSafeHref(violation.helpUrl)}" target="_blank" rel="noopener noreferrer">Guidance</a></p>
               <ul>
                 ${violation.nodes.map(node => `<li><div><strong>Target:</strong> <code>${escapeHtml((node.target || []).join(', '))}</code></div><div><strong>HTML:</strong> <code>${escapeHtml(node.html)}</code></div><div><strong>Summary:</strong> ${escapeHtml(node.summary)}</div></li>`).join('')}
@@ -467,8 +479,9 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
       const incompleteMarkup = result.incomplete.length > 0
         ? result.incomplete.map((entry) => `
             <details>
-              <summary><strong>${escapeHtml(entry.id)}</strong> (${escapeHtml(entry.impact)}) — ${escapeHtml(entry.help)}</summary>
+              <summary><strong>${escapeHtml(entry.id)}</strong> (${escapeHtml(entry.impact)}) — ${escapeHtml(entry.help)} <span class="source-badge">${escapeHtml(entry.source || 'axe-core')}</span></summary>
               <p>${escapeHtml(entry.description)}</p>
+              <p><strong>Source:</strong> ${escapeHtml(entry.source || 'axe-core')}</p>
               <p><a href="${toSafeHref(entry.helpUrl)}" target="_blank" rel="noopener noreferrer">Guidance</a></p>
               <ul>
                 ${entry.nodes.map(node => `<li><div><strong>Target:</strong> <code>${escapeHtml((node.target || []).join(', '))}</code></div><div><strong>HTML:</strong> <code>${escapeHtml(node.html)}</code></div><div><strong>Summary:</strong> ${escapeHtml(node.summary)}</div></li>`).join('')}
@@ -523,6 +536,7 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
       code { white-space: pre-wrap; word-break: break-word; }
       details + details { margin-top: 8px; }
       a { color: inherit; }
+      .source-badge { display: inline-block; font-size: 0.75em; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: rgba(127,127,127,0.15); margin-left: 6px; vertical-align: middle; }
     </style>
   </head>
   <body>
@@ -530,6 +544,7 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
     <div class="meta">
       <div class="card"><strong>Target URL</strong><div><a href="${toSafeHref(summary.targetUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(summary.targetUrl)}</a></div></div>
       <div class="card"><strong>Generated</strong><div>${escapeHtml(formatTimestamp(summary.generatedAt))}</div></div>
+      <div class="card"><strong>Scan tool(s)</strong><div>${escapeHtml(toolsLabel)}</div></div>
       <div class="card"><strong>Pages scanned</strong><div>${escapeHtml(summary.totals?.pagesScanned ?? 0)}</div></div>
       <div class="card"><strong>Pages failed</strong><div>${escapeHtml(summary.totals?.pagesFailed ?? 0)}</div></div>
       <div class="card"><strong>Total violations</strong><div>${escapeHtml(summary.totals?.totalViolations ?? 0)}</div></div>
@@ -545,7 +560,7 @@ function buildHtmlReport(summary, results, reportType = 'summary') {
 
     <h2>Top violations</h2>
     <table>
-      <thead><tr><th>Rule ID</th><th>Impact</th><th>Pages Affected</th><th>Node Count</th><th>Guidance</th></tr></thead>
+      <thead><tr><th>Rule ID</th><th>Impact</th><th>Source</th><th>Pages Affected</th><th>Node Count</th><th>Guidance</th></tr></thead>
       <tbody>${topRows}</tbody>
     </table>
 
@@ -608,11 +623,20 @@ async function main() {
   const pagesScanned = results.filter(r => r.status === 'ok').length;
   const pagesFailed = results.filter(r => r.status === 'error').length;
 
+  const scanToolsSet = new Set();
+  for (const r of results) {
+    for (const v of [...(r.violations || []), ...(r.incomplete || [])]) {
+      scanToolsSet.add(v.source || 'axe-core');
+    }
+  }
+  const scanTools = scanToolsSet.size > 0 ? [...scanToolsSet] : ['axe-core'];
+
   const summary = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     targetUrl,
     reportType,
+    scanTools,
     limits: {
       depth,
       maxPages,
