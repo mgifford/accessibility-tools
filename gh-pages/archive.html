@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accessibility Tools — Published Reports</title>
+    <title>Accessibility Tools — Report Archive</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -11,42 +11,41 @@
 
     <main id="main-content" class="stack">
       <header class="site-header">
-        <h1>Published accessibility scan reports</h1>
+        <h1>Report Archive</h1>
         <p class="subtitle">
-          Browse recent runs and open every published asset for each report bundle.
+          Scans completed more than 31 days ago. Download the ZIP to access
+          HTML and JSON report files — direct HTML report links are not provided
+          for archived runs.
         </p>
       </header>
 
       <nav class="breadcrumb" aria-label="Site navigation">
         <a href="./">← Back to dashboard</a>
         &nbsp;·&nbsp;
-        <a href="./archive.html">Older report archive (&gt;31 days)</a>
+        <a href="./reports.html">Recent reports (last 31 days)</a>
       </nav>
 
-      <section class="grid" id="reports-summary" aria-label="Report inventory summary">
-        <article class="card">
-          <strong>Loading report inventory…</strong>
-        </article>
-      </section>
-
-      <section class="card stack" aria-labelledby="recent-bundles-heading">
+      <section class="card stack" aria-labelledby="archive-heading">
         <div class="section-title">
-          <h2 id="recent-bundles-heading">Recent report bundles</h2>
-          <span class="section-note">(last 31 days)</span>
+          <h2 id="archive-heading">Archived runs</h2>
+          <span id="archive-count" class="section-note"></span>
         </div>
-        <p class="muted" style="margin:0;">Data source: <code>gh-pages/data/report-index.json</code></p>
+        <p class="muted" style="margin:0;">
+          Data sources: <code>gh-pages/data/history.json</code> and
+          <code>gh-pages/data/report-index.json</code>
+        </p>
         <div class="table-wrapper">
-          <table aria-label="Recent report bundles">
+          <table aria-label="Archived scan runs">
             <thead>
               <tr>
                 <th scope="col">Domain</th>
                 <th scope="col">Pages Scanned</th>
                 <th scope="col">Violations</th>
                 <th scope="col">Date</th>
-                <th scope="col">Reports</th>
+                <th scope="col">Download</th>
               </tr>
             </thead>
-            <tbody id="report-rows">
+            <tbody id="archive-rows">
               <tr><td colspan="5">Loading…</td></tr>
             </tbody>
           </table>
@@ -61,6 +60,6 @@
       </p>
     </footer>
 
-    <script src="./reports.js" type="module"></script>
+    <script src="./archive.js" type="module"></script>
   </body>
 </html>

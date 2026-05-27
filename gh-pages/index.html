@@ -3,129 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accessibility Tools - Web Scan Dashboard</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        font-family: Inter, Roboto, system-ui, -apple-system, Segoe UI, sans-serif;
-      }
-
-      body {
-        margin: 0;
-        padding: 1.25rem;
-        line-height: 1.45;
-      }
-
-      main {
-        max-width: 1024px;
-        margin: 0 auto;
-      }
-
-      h1, h2 {
-        margin: 0 0 .5rem;
-      }
-
-      .grid {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-
-      .card {
-        border: 1px solid rgba(127, 127, 127, 0.35);
-        border-radius: 12px;
-        padding: 1rem;
-      }
-
-      .stack > * + * {
-        margin-top: .75rem;
-      }
-
-      label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: .25rem;
-      }
-
-      input, select, button, textarea {
-        width: 100%;
-        box-sizing: border-box;
-        padding: .6rem;
-        border-radius: 8px;
-        border: 1px solid rgba(127, 127, 127, 0.5);
-        font: inherit;
-      }
-
-      button {
-        cursor: pointer;
-      }
-
-      .actions {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: .5rem;
-      }
-
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        font-size: .92rem;
-      }
-
-      th, td {
-        border: 1px solid rgba(127, 127, 127, 0.4);
-        padding: .45rem;
-        vertical-align: top;
-      }
-
-      .muted {
-        opacity: .8;
-      }
-
-      .status {
-        margin-top: .5rem;
-        padding: .75rem;
-        min-height: 1.25rem;
-        border-radius: 8px;
-        background: rgba(127, 127, 127, 0.08);
-      }
-
-      .status[data-variant="success"] {
-        color: #146c2e;
-        background: rgba(20, 108, 46, 0.12);
-      }
-
-      .status[data-variant="error"] {
-        color: #c62828;
-        background: rgba(198, 40, 40, 0.12);
-      }
-
-      a { color: inherit; }
-    </style>
+    <title>Accessibility Tools — Web Scan Dashboard</title>
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main class="stack">
-      <header>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <main id="main-content" class="stack">
+      <header class="site-header">
         <h1>Accessibility Web Scan Dashboard</h1>
-        <p class="muted">
+        <p class="subtitle">
           Submit URLs, queue scans, and review published results from GitHub Actions.
         </p>
       </header>
 
-      <section class="grid">
-        <article class="card stack">
+      <section class="grid" aria-label="Dashboard actions">
+        <article class="card card--accent-blue stack">
           <h2>Submit scan request</h2>
           <div>
             <label for="target-url">Target URL</label>
-            <input id="target-url" type="url" placeholder="https://example.com" required />
+            <input id="target-url" type="url" placeholder="https://example.com" required
+                   aria-describedby="url-hint" />
+            <p id="url-hint" class="muted" style="margin:.25rem 0 0;font-size:.85rem;">
+              Enter a full URL including <code>https://</code>
+            </p>
           </div>
           <div class="grid">
             <div>
-              <label for="crawl-depth">Crawl depth (0-5)</label>
+              <label for="crawl-depth">Crawl depth (0–5)</label>
               <input id="crawl-depth" type="number" min="0" max="5" value="2" />
             </div>
             <div>
-              <label for="max-pages">Max pages (1-100)</label>
+              <label for="max-pages">Max pages (1–100)</label>
               <input id="max-pages" type="number" min="1" max="100" value="25" />
             </div>
           </div>
@@ -139,55 +48,67 @@
           <div class="actions">
             <button id="queue-btn" type="button">Submit scan request</button>
           </div>
-          <div id="submit-status" class="status muted" role="status" aria-live="polite"></div>
+          <div id="submit-status" class="status" role="status" aria-live="polite"></div>
         </article>
 
-        <article class="card stack">
+        <article class="card card--accent-teal stack">
           <h2>Latest published summary</h2>
-          <div id="latest-summary" class="muted">Loading...</div>
-          <div>
-            <a id="latest-report-link" href="#">Open latest report JSON</a>
-          </div>
-          <div>
-            <a href="./reports/latest/report.html">Open latest HTML report</a>
-          </div>
-          <div>
-            <a href="./reports.html">Open published reports listing</a>
-          </div>
+          <div id="latest-summary" class="muted">Loading…</div>
+          <ul style="padding-left:1.25rem;margin:.5rem 0 0;">
+            <li><a id="latest-report-link" href="#">Open latest report JSON</a></li>
+            <li><a href="./reports/latest/report.html">Open latest HTML report</a></li>
+            <li><a href="./reports.html">All published reports</a></li>
+            <li><a href="./archive.html">Older report archive (>31 days)</a></li>
+          </ul>
         </article>
       </section>
 
-      <section class="card stack">
-        <h2>Recent workflow runs</h2>
-        <div class="muted">Data source: <code>gh-pages/data/history.json</code></div>
-        <div style="overflow:auto;">
-          <table>
+      <section class="card stack" aria-labelledby="recent-runs-heading">
+        <div class="section-title">
+          <h2 id="recent-runs-heading">Recent workflow runs</h2>
+          <span class="section-note">(last 31 days — older runs are in the <a href="./archive.html">archive</a>)</span>
+        </div>
+        <p class="muted" style="margin:0;">Data source: <code>gh-pages/data/history.json</code></p>
+        <div class="table-wrapper">
+          <table aria-label="Recent workflow runs">
             <thead>
               <tr>
-                <th>Domain</th>
-                <th>Pages Scanned</th>
-                <th>Violations</th>
-                <th>Date</th>
-                <th>Reports</th>
+                <th scope="col">Domain</th>
+                <th scope="col">Pages Scanned</th>
+                <th scope="col">Violations</th>
+                <th scope="col">Date</th>
+                <th scope="col">Reports</th>
               </tr>
             </thead>
-            <tbody id="history-rows"></tbody>
+            <tbody id="history-rows">
+              <tr><td colspan="5">Loading…</td></tr>
+            </tbody>
           </table>
         </div>
       </section>
 
-      <section class="card stack">
-        <h2>Public request path</h2>
+      <section class="card stack" aria-labelledby="request-path-heading">
+        <h2 id="request-path-heading">Public request path</h2>
         <p>
           Use the queued issue flow to start scans from this public dashboard.
           Scan request issues are detected from the form body and labeled
-          <code>scan-request</code> automatically when needed.
+          <code>scan-request</code> automatically.
         </p>
         <p>
-          <a href="https://github.com/mgifford/accessibility-tools/issues/new?template=scan-request.yml">Create scan request issue</a>
+          <a class="btn btn-secondary"
+             href="https://github.com/mgifford/accessibility-tools/issues/new?template=scan-request.yml">
+            Create scan request issue on GitHub
+          </a>
         </p>
       </section>
     </main>
+
+    <footer>
+      <p>
+        <a href="https://github.com/mgifford/accessibility-tools">mgifford/accessibility-tools</a>
+        · Powered by GitHub Actions &amp; axe-core
+      </p>
+    </footer>
 
     <script src="./app.js" type="module"></script>
   </body>
