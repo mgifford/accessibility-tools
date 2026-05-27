@@ -623,12 +623,20 @@ async function main() {
   const pagesScanned = results.filter(r => r.status === 'ok').length;
   const pagesFailed = results.filter(r => r.status === 'error').length;
 
+  const scanToolsSet = new Set();
+  for (const r of results) {
+    for (const v of [...(r.violations || []), ...(r.incomplete || [])]) {
+      scanToolsSet.add(v.source || 'axe-core');
+    }
+  }
+  const scanTools = scanToolsSet.size > 0 ? [...scanToolsSet] : ['axe-core'];
+
   const summary = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     targetUrl,
     reportType,
-    scanTools: ['axe-core'],
+    scanTools,
     limits: {
       depth,
       maxPages,
